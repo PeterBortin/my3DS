@@ -2,391 +2,1026 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>OSINT • EDGE ANALYSIS SYSTEM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+    <title>CV System • Режимы анализа</title>
     <style>
-        :root {
-            --neon-green: #00ff41;
-            --dark-green: #003b00;
-            --hud-bg: rgba(0, 10, 0, 0.85);
-            --glitch-color: rgba(0, 255, 65, 0.3);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
+            overflow: hidden;
             background: #000;
-            color: var(--neon-green);
             font-family: 'Courier New', monospace;
-            overflow: hidden;
             touch-action: none;
-            text-transform: uppercase;
+            -webkit-tap-highlight-color: transparent;
         }
-
-        /* Эффект ЭЛТ-монитора */
-        body::after {
-            content: " ";
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 100;
-            background-size: 100% 3px, 3px 100%;
-            pointer-events: none;
-        }
-
-        #app { width: 100vw; height: 100vh; position: relative; }
-
-        canvas {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            filter: contrast(1.2) brightness(1.1);
-        }
-
-        /* Панели HUD */
-        .hud-overlay {
-            position: absolute;
-            z-index: 50;
-            pointer-events: none;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px var(--neon-green);
-        }
-
-        #top-bar {
-            top: 0; left: 0; right: 0;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            background: linear-gradient(180deg, rgba(0,20,0,0.8), transparent);
-        }
-
-        #system-log {
-            position: absolute;
-            bottom: 160px;
-            left: 20px;
-            font-size: 10px;
-            max-width: 200px;
-            height: 100px;
+        
+        #app {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden;
-            opacity: 0.7;
         }
-
-        /* Кнопки управления */
-        #controls {
+        
+        #output-canvas {
             position: absolute;
-            right: 20px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        
+        /* Верхняя панель */
+        #top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 100%);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            pointer-events: none;
+        }
+        
+        #mode-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #mode-led {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #0f0;
+            box-shadow: 0 0 12px #0f0;
+            animation: blink 2s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        #mode-name {
+            color: #0f0;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #0f0;
+        }
+        
+        #stats {
+            display: flex;
+            gap: 20px;
+            color: #0f0;
+            font-size: 11px;
+            text-shadow: 0 0 8px #0f0;
+        }
+        
+        /* Центральный HUD */
+        #center-hud {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            pointer-events: none;
+        }
+        
+        #crosshair {
+            width: 100px;
+            height: 100px;
+            position: relative;
+        }
+        
+        .crosshair-part {
+            position: absolute;
+            background: rgba(0, 255, 0, 0.5);
+            box-shadow: 0 0 12px #0f0;
+        }
+        
+        .ch-h { width: 100%; height: 1px; top: 50%; }
+        .ch-v { width: 1px; height: 100%; left: 50%; }
+        
+        .ch-corner {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            border-color: #0f0;
+            border-style: solid;
+            filter: drop-shadow(0 0 8px #0f0);
+        }
+        
+        .ch-tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+        .ch-tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+        .ch-bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+        .ch-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+        
+        /* Боковые индикаторы */
+        #left-indicators {
+            position: absolute;
+            left: 16px;
             top: 50%;
             transform: translateY(-50%);
+            z-index: 15;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            pointer-events: auto;
+            gap: 16px;
+            pointer-events: none;
         }
-
-        .btn {
-            width: 60px; height: 60px;
-            border: 1px solid var(--neon-green);
-            background: var(--hud-bg);
-            color: var(--neon-green);
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: inherit;
+        
+        .indicator-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .indicator-bar-bg {
+            width: 4px;
+            height: 80px;
+            background: rgba(0, 255, 0, 0.15);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .indicator-bar-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #0f0;
+            box-shadow: 0 0 15px #0f0;
+            transition: height 0.08s linear;
+        }
+        
+        .indicator-text {
+            color: #0f0;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 6px #0f0;
+        }
+        
+        /* Панель управления (правая) */
+        #mode-panel {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        
+        .mode-btn {
+            pointer-events: auto;
+            width: 55px;
+            height: 55px;
+            border-radius: 12px;
+            background: rgba(0, 15, 0, 0.85);
+            border: 1.5px solid rgba(0, 255, 0, 0.5);
+            color: #0f0;
             font-size: 10px;
-            transition: 0.3s;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            box-shadow: inset 0 0 10px var(--dark-green);
+            line-height: 1.3;
+            padding: 0 3px;
         }
-
-        .btn.active {
-            background: var(--neon-green);
+        
+        .mode-btn.active {
+            background: #0f0;
             color: #000;
-            box-shadow: 0 0 20px var(--neon-green);
+            border-color: #0f0;
+            box-shadow: 0 0 25px #0f0;
         }
-
-        /* Слайдеры */
-        #bottom-settings {
+        
+        .mode-btn:active {
+            transform: scale(0.92);
+        }
+        
+        /* Панель настроек */
+        #settings-panel {
             position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 500px;
-            background: var(--hud-bg);
-            padding: 20px;
-            border: 1px solid var(--neon-green);
+            bottom: 20px;
+            left: 16px;
+            right: 16px;
+            z-index: 20;
+            background: rgba(0, 8, 0, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 0, 0.25);
+            border-radius: 16px;
+            padding: 14px;
             pointer-events: auto;
-            border-radius: 2px;
         }
-
-        .slider-row {
+        
+        .setting-row {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
-
-        input[type="range"] {
-            flex-grow: 1;
-            accent-color: var(--neon-green);
-            background: var(--dark-green);
-            height: 4px;
-            appearance: none;
-        }
-
-        /* Индикаторы */
-        .v-bar {
-            width: 4px; height: 100px;
-            background: var(--dark-green);
-            position: relative;
-        }
-
-        .v-fill {
-            position: absolute;
-            bottom: 0; width: 100%;
-            background: var(--neon-green);
-            box-shadow: 0 0 10px var(--neon-green);
-            transition: height 0.1s;
-        }
-
-        #crosshair {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 120px; height: 120px;
-            opacity: 0.5;
-        }
-
-        .ch { position: absolute; border: 1px solid var(--neon-green); }
-        .ch-tl { top: 0; left: 0; width: 20px; height: 20px; border-right: 0; border-bottom: 0; }
-        .ch-br { bottom: 0; right: 0; width: 20px; height: 20px; border-left: 0; border-top: 0; }
         
-        .scanline {
-            width: 100%; height: 2px;
-            background: rgba(0, 255, 65, 0.1);
-            position: absolute;
-            animation: scan 4s linear infinite;
+        .setting-row:last-child {
+            margin-bottom: 0;
         }
-
-        @keyframes scan { from { top: 0; } to { top: 100%; } }
+        
+        .setting-label {
+            color: #0f0;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-width: 70px;
+            text-shadow: 0 0 6px #0f0;
+        }
+        
+        .setting-value {
+            color: #0f0;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 35px;
+            text-align: right;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 3px;
+            -webkit-appearance: none;
+            background: #333;
+            border-radius: 2px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #0f0;
+            border: 2px solid #000;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px #0f0;
+        }
+        
+        /* Группа кнопок */
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .opt-btn {
+            padding: 5px 12px;
+            background: rgba(0, 20, 0, 0.6);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 16px;
+            color: #0f0;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-transform: uppercase;
+        }
+        
+        .opt-btn.active {
+            background: #0f0;
+            color: #000;
+            border-color: #0f0;
+            box-shadow: 0 0 12px #0f0;
+        }
+        
+        /* Информационная строка */
+        #info-line {
+            position: absolute;
+            bottom: 100px;
+            left: 16px;
+            right: 16px;
+            z-index: 15;
+            display: flex;
+            justify-content: space-between;
+            color: rgba(0, 255, 0, 0.6);
+            font-size: 9px;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+        
+        /* Сообщения */
+        #message {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            background: rgba(0, 20, 0, 0.9);
+            border: 1px solid #0f0;
+            border-radius: 20px;
+            padding: 6px 20px;
+            color: #0f0;
+            font-size: 11px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        /* Адаптация */
+        @media (max-width: 600px) {
+            #settings-panel { padding: 10px; }
+            .setting-label { min-width: 55px; font-size: 9px; }
+            .mode-btn { width: 48px; height: 48px; font-size: 9px; }
+        }
     </style>
 </head>
 <body>
-
-<div id="app">
-    <canvas id="canvas"></canvas>
-    <div class="scanline"></div>
-
-    <div id="top-bar" class="hud-overlay">
-        <div>[ STATUS: <span id="mode-label">IDLE</span> ]</div>
-        <div id="stats">60 FPS // 0.0ms</div>
-    </div>
-
-    <div id="system-log" class="hud-overlay"></div>
-
-    <div id="crosshair" class="hud-overlay">
-        <div class="ch ch-tl"></div>
-        <div class="ch ch-br"></div>
-    </div>
-
-    <div id="controls">
-        <button class="btn" data-mode="normal">VIDEO</button>
-        <button class="btn active" data-mode="wire">WIRE</button>
-        <button class="btn" data-mode="edge">EDGE</button>
-        <button class="btn" data-mode="topo">TOPO</button>
-    </div>
-
-    <div id="bottom-settings">
-        <div class="slider-row">
-            <span>RES</span>
-            <input type="range" id="res-range" min="8" max="40" value="16">
-            <span id="res-val">16</span>
+    <div id="app">
+        <canvas id="output-canvas"></canvas>
+        
+        <!-- Верхняя панель -->
+        <div id="top-bar">
+            <div id="mode-indicator">
+                <div id="mode-led"></div>
+                <span id="mode-name">WIREFRAME</span>
+            </div>
+            <div id="stats">
+                <span id="fps">60 FPS</span>
+                <span id="resolution">640x480</span>
+            </div>
         </div>
-        <div class="slider-row">
-            <span>THR</span>
-            <input type="range" id="sens-range" min="5" max="100" value="30">
-            <span id="sens-val">30</span>
+        
+        <!-- Центральный HUD -->
+        <div id="center-hud">
+            <div id="crosshair">
+                <div class="crosshair-part ch-h"></div>
+                <div class="crosshair-part ch-v"></div>
+                <div class="ch-corner ch-tl"></div>
+                <div class="ch-corner ch-tr"></div>
+                <div class="ch-corner ch-bl"></div>
+                <div class="ch-corner ch-br"></div>
+            </div>
         </div>
-    </div>
-</div>
-
-<script>
-(function() {
-    const config = {
-        res: 16,
-        threshold: 30,
-        mode: 'wire',
-        fps: 0,
-        lastTime: 0
-    };
-
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
-    const logEl = document.getElementById('system-log');
-    let video = null;
-    let prevData = null;
-
-    function addLog(msg) {
-        const div = document.createElement('div');
-        div.textContent = `> ${msg}`;
-        logEl.prepend(div);
-        if (logEl.childNodes.length > 8) logEl.lastChild.remove();
-    }
-
-    async function init() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'environment', width: 640, height: 480 },
-                audio: false 
-            });
-            video = document.createElement('video');
-            video.srcObject = stream;
-            video.play();
+        
+        <!-- Левые индикаторы -->
+        <div id="left-indicators">
+            <div class="indicator-item">
+                <div class="indicator-bar-bg">
+                    <div class="indicator-bar-fill" id="edge-indicator" style="height: 0%"></div>
+                </div>
+                <span class="indicator-text">EDGE</span>
+            </div>
+            <div class="indicator-item">
+                <div class="indicator-bar-bg">
+                    <div class="indicator-bar-fill" id="motion-indicator" style="height: 0%"></div>
+                </div>
+                <span class="indicator-text">MOT</span>
+            </div>
+        </div>
+        
+        <!-- Панель режимов -->
+        <div id="mode-panel">
+            <button class="mode-btn" data-mode="camera">CAM</button>
+            <button class="mode-btn active" data-mode="wireframe">WIRE</button>
+            <button class="mode-btn" data-mode="edges">EDGE</button>
+            <button class="mode-btn" data-mode="depth">DEPTH</button>
+            <button class="mode-btn" data-mode="normals">NORM</button>
+        </div>
+        
+        <!-- Информационная строка -->
+        <div id="info-line">
+            <span id="cell-info">CELLS: 40x30</span>
+            <span id="perf-info">RENDER: 0ms</span>
+        </div>
+        
+        <!-- Панель настроек -->
+        <div id="settings-panel">
+            <div class="setting-row">
+                <span class="setting-label">CELL</span>
+                <input type="range" id="cell-size" min="8" max="32" value="16" step="2">
+                <span class="setting-value" id="cell-size-val">16</span>
+            </div>
             
-            video.onloadedmetadata = () => {
-                resize();
-                addLog("CAMERA LINK ESTABLISHED");
-                addLog("KERNEL: EDGE_ANALYSIS_V4.0");
-                render();
+            <div class="setting-row">
+                <span class="setting-label">SENS</span>
+                <input type="range" id="sensitivity" min="15" max="70" value="35" step="5">
+                <span class="setting-value" id="sensitivity-val">35</span>
+            </div>
+            
+            <div class="setting-row">
+                <span class="setting-label">VIEW</span>
+                <div class="btn-group">
+                    <button class="opt-btn active" data-opt="vectors">VEC</button>
+                    <button class="opt-btn" data-opt="grid">GRID</button>
+                    <button class="opt-btn active" data-opt="heatmap">HEAT</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Сообщения -->
+        <div id="message"></div>
+    </div>
+
+    <script>
+        (function() {
+            "use strict";
+            
+            // --- Состояние системы ---
+            const state = {
+                // Режим
+                mode: 'wireframe', // camera, wireframe, edges, depth, normals
+                
+                // Настройки
+                cellSize: 16,
+                sensitivity: 35,
+                showVectors: true,
+                showGrid: false,
+                showHeatmap: true,
+                
+                // Данные
+                video: null,
+                stream: null,
+                canvas: null,
+                ctx: null,
+                
+                // Производительность
+                fps: 0,
+                frameTime: 0,
+                frameSkip: 1,
+                skipCounter: 0,
+                
+                // Аналитика
+                edgeDensity: 0,
+                motionLevel: 0,
+                cellsX: 0,
+                cellsY: 0,
+                
+                // Предыдущий кадр для motion detection
+                prevFrame: null,
+                
+                // Флаги
+                isRunning: false,
+                isProcessing: false
             };
-        } catch (e) {
-            addLog("CRITICAL ERROR: NO SENSOR DATA");
-        }
-    }
-
-    function resize() {
-        const aspect = video.videoWidth / video.videoHeight;
-        canvas.width = 640;
-        canvas.height = 640 / aspect;
-        canvas.style.width = '100vw';
-        canvas.style.height = '100vh';
-        canvas.style.objectFit = 'cover';
-    }
-
-    // РЕЖИМ: WIREFRAME (Сетка векторов)
-    function drawWireframe(data, w, h) {
-        const step = config.res;
-        ctx.strokeStyle = 'rgba(0, 255, 65, 0.5)';
-        ctx.lineWidth = 1;
-
-        for (let y = 0; y < h; y += step) {
-            for (let x = 0; x < w; x += step) {
-                const idx = (y * w + x) * 4;
-                const r = data[idx], g = data[idx+1], b = data[idx+2];
-                const lum = (r + g + b) / 3;
-
-                if (lum > config.threshold) {
-                    const size = (lum / 255) * step;
-                    ctx.strokeRect(x - size/2, y - size/2, size, size);
+            
+            // UI элементы
+            const ui = {
+                canvas: null,
+                modeName: null,
+                fpsEl: null,
+                resolutionEl: null,
+                cellInfo: null,
+                perfInfo: null,
+                edgeIndicator: null,
+                motionIndicator: null,
+                cellSizeSlider: null,
+                cellSizeVal: null,
+                sensitivitySlider: null,
+                sensitivityVal: null,
+                message: null
+            };
+            
+            // --- Инициализация UI ---
+            function initUI() {
+                ui.canvas = document.getElementById('output-canvas');
+                ui.modeName = document.getElementById('mode-name');
+                ui.fpsEl = document.getElementById('fps');
+                ui.resolutionEl = document.getElementById('resolution');
+                ui.cellInfo = document.getElementById('cell-info');
+                ui.perfInfo = document.getElementById('perf-info');
+                ui.edgeIndicator = document.getElementById('edge-indicator');
+                ui.motionIndicator = document.getElementById('motion-indicator');
+                ui.cellSizeSlider = document.getElementById('cell-size');
+                ui.cellSizeVal = document.getElementById('cell-size-val');
+                ui.sensitivitySlider = document.getElementById('sensitivity');
+                ui.sensitivityVal = document.getElementById('sensitivity-val');
+                ui.message = document.getElementById('message');
+                
+                state.ctx = ui.canvas.getContext('2d', {
+                    willReadFrequently: true,
+                    alpha: false
+                });
+            }
+            
+            // --- Показать сообщение ---
+            function showMessage(text, duration = 1500) {
+                if (!ui.message) return;
+                ui.message.textContent = text;
+                ui.message.style.opacity = '1';
+                setTimeout(() => {
+                    ui.message.style.opacity = '0';
+                }, duration);
+            }
+            
+            // --- Настройка обработчиков ---
+            function setupEvents() {
+                // Режимы
+                document.querySelectorAll('[data-mode]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const mode = btn.dataset.mode;
+                        state.mode = mode;
+                        
+                        document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        
+                        const names = {
+                            camera: 'CAMERA',
+                            wireframe: 'WIREFRAME',
+                            edges: 'EDGE DETECT',
+                            depth: 'DEPTH MAP',
+                            normals: 'NORMALS'
+                        };
+                        
+                        ui.modeName.textContent = names[mode] || mode;
+                        showMessage(`Mode: ${names[mode]}`);
+                        
+                        // Сброс предыдущего кадра при смене режима
+                        state.prevFrame = null;
+                    });
+                });
+                
+                // Слайдеры
+                ui.cellSizeSlider.addEventListener('input', (e) => {
+                    state.cellSize = parseInt(e.target.value);
+                    ui.cellSizeVal.textContent = state.cellSize;
+                    updateCellInfo();
+                });
+                
+                ui.sensitivitySlider.addEventListener('input', (e) => {
+                    state.sensitivity = parseInt(e.target.value);
+                    ui.sensitivityVal.textContent = state.sensitivity;
+                });
+                
+                // Опции
+                document.querySelectorAll('[data-opt]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const opt = btn.dataset.opt;
+                        
+                        if (opt === 'vectors') {
+                            state.showVectors = !state.showVectors;
+                            btn.classList.toggle('active', state.showVectors);
+                        } else if (opt === 'grid') {
+                            state.showGrid = !state.showGrid;
+                            btn.classList.toggle('active', state.showGrid);
+                        } else if (opt === 'heatmap') {
+                            state.showHeatmap = !state.showHeatmap;
+                            btn.classList.toggle('active', state.showHeatmap);
+                        }
+                        
+                        showMessage(`${opt}: ${state[opt === 'vectors' ? 'showVectors' : opt === 'grid' ? 'showGrid' : 'showHeatmap'] ? 'ON' : 'OFF'}`);
+                    });
+                });
+                
+                // Ресайз
+                window.addEventListener('resize', resizeCanvas);
+            }
+            
+            // --- Обновление информации о ячейках ---
+            function updateCellInfo() {
+                if (!ui.canvas.width) return;
+                state.cellsX = Math.floor(ui.canvas.width / state.cellSize);
+                state.cellsY = Math.floor(ui.canvas.height / state.cellSize);
+                ui.cellInfo.textContent = `CELLS: ${state.cellsX}x${state.cellsY}`;
+            }
+            
+            // --- Инициализация камеры ---
+            async function initCamera() {
+                try {
+                    state.stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 640 },
+                            height: { ideal: 480 },
+                            frameRate: { ideal: 30 }
+                        },
+                        audio: false
+                    });
                     
-                    // Рисуем "связи", если яркость высокая
-                    if (lum > 150) {
-                        ctx.beginPath();
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x + step/2, y + step/2);
-                        ctx.stroke();
-                    }
+                    state.video = document.createElement('video');
+                    state.video.srcObject = state.stream;
+                    state.video.setAttribute('playsinline', true);
+                    state.video.muted = true;
+                    
+                    await new Promise((resolve) => {
+                        state.video.onloadedmetadata = () => {
+                            state.video.play().then(resolve);
+                        };
+                    });
+                    
+                    resizeCanvas();
+                    showMessage('Camera ready');
+                    return true;
+                    
+                } catch (e) {
+                    console.error('Camera error:', e);
+                    showMessage('Camera error!');
+                    return false;
                 }
             }
-        }
-    }
-
-    // РЕЖИМ: EDGE (Собель)
-    function drawEdges(data, w, h) {
-        const out = ctx.createImageData(w, h);
-        for (let i = 0; i < data.length; i += 4) {
-            const x = (i/4) % w;
-            const y = Math.floor((i/4) / w);
             
-            if (x === 0 || x === w-1 || y === 0 || y === h-1) continue;
-
-            const getLum = (ox, oy) => {
-                const k = ((y + oy) * w + (x + ox)) * 4;
-                return data[k] * 0.3 + data[k+1] * 0.59 + data[k+2] * 0.11;
-            };
-
-            const gx = -getLum(-1,-1) + getLum(1,-1) - 2*getLum(-1,0) + 2*getLum(1,0) - getLum(-1,1) + getLum(1,1);
-            const gy = -getLum(-1,-1) - 2*getLum(0,-1) - getLum(1,-1) + getLum(-1,1) + 2*getLum(0,1) + getLum(1,1);
-            const mag = Math.sqrt(gx*gx + gy*gy);
-
-            const pos = (y * w + x) * 4;
-            if (mag > config.threshold * 2) {
-                out.data[pos] = 0; 
-                out.data[pos+1] = 255; 
-                out.data[pos+2] = 65;
-            } else {
-                out.data[pos] = data[pos] * 0.1;
-                out.data[pos+1] = data[pos+1] * 0.15;
-                out.data[pos+2] = data[pos+2] * 0.1;
+            // --- Изменение размера canvas ---
+            function resizeCanvas() {
+                if (!state.video || !state.video.videoWidth) return;
+                
+                const cw = window.innerWidth;
+                const ch = window.innerHeight;
+                const va = state.video.videoWidth / state.video.videoHeight;
+                const ca = cw / ch;
+                
+                let dw, dh;
+                
+                if (ca > va) {
+                    dw = Math.min(cw, 800);
+                    dh = dw / va;
+                } else {
+                    dh = Math.min(ch, 800);
+                    dw = dh * va;
+                }
+                
+                ui.canvas.width = Math.floor(dw);
+                ui.canvas.height = Math.floor(dh);
+                
+                // CSS центрирование
+                ui.canvas.style.width = dw + 'px';
+                ui.canvas.style.height = dh + 'px';
+                ui.canvas.style.left = ((cw - dw) / 2) + 'px';
+                ui.canvas.style.top = ((ch - dh) / 2) + 'px';
+                
+                ui.resolutionEl.textContent = `${ui.canvas.width}x${ui.canvas.height}`;
+                updateCellInfo();
             }
-            out.data[pos+3] = 255;
-        }
-        ctx.putImageData(out, 0, 0);
-    }
-
-    function render(time) {
-        config.fps = Math.round(1000 / (time - config.lastTime));
-        config.lastTime = time;
-        document.getElementById('stats').textContent = `${config.fps} FPS // ${(performance.now() - time).toFixed(1)}MS`;
-
-        // Ghosting эффект (полупрозрачный слой поверх)
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
-        // Очищаем для наложения графики, если не режим VIDEO
-        if (config.mode !== 'normal') {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        switch(config.mode) {
-            case 'wire': drawWireframe(frame.data, canvas.width, canvas.height); break;
-            case 'edge': drawEdges(frame.data, canvas.width, canvas.height); break;
-            case 'topo': 
-                // Имитация тепловой карты
-                ctx.globalCompositeOperation = 'screen';
-                ctx.drawImage(video, 0, 0);
-                ctx.filter = 'contrast(2) hue-rotate(90deg) brightness(0.5)';
-                break;
-            default:
-                ctx.drawImage(video, 0, 0);
-        }
-        
-        ctx.filter = 'none';
-        ctx.globalCompositeOperation = 'source-over';
-
-        requestAnimationFrame(render);
-    }
-
-    // UI Events
-    document.querySelectorAll('.btn').forEach(b => {
-        b.onclick = () => {
-            document.querySelectorAll('.btn').forEach(x => x.classList.remove('active'));
-            b.classList.add('active');
-            config.mode = b.dataset.mode;
-            document.getElementById('mode-label').textContent = b.dataset.mode.toUpperCase();
-            addLog(`SWITCH_MODE: ${config.mode.toUpperCase()}`);
-        };
-    });
-
-    document.getElementById('res-range').oninput = (e) => {
-        config.res = parseInt(e.target.value);
-        document.getElementById('res-val').textContent = config.res;
-    };
-
-    document.getElementById('sens-range').oninput = (e) => {
-        config.threshold = parseInt(e.target.value);
-        document.getElementById('sens-val').textContent = config.threshold;
-    };
-
-    init();
-})();
-</script>
+            
+            // --- Рендеринг: Камера ---
+            function renderCamera() {
+                if (!state.video || state.video.readyState < 2) return;
+                state.ctx.drawImage(state.video, 0, 0, ui.canvas.width, ui.canvas.height);
+            }
+            
+            // --- Рендеринг: Wireframe ---
+            function renderWireframe() {
+                const w = ui.canvas.width;
+                const h = ui.canvas.height;
+                const ctx = state.ctx;
+                
+                ctx.drawImage(state.video, 0, 0, w, h);
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const data = imgData.data;
+                
+                const cs = state.cellSize;
+                const sens = state.sensitivity;
+                const cols = Math.floor(w / cs);
+                const rows = Math.floor(h / cs);
+                
+                // Motion detection
+                let motionSum = 0;
+                if (state.prevFrame) {
+                    for (let i = 0; i < data.length; i += 400) {
+                        motionSum += Math.abs(data[i] - state.prevFrame[i]);
+                    }
+                    state.motionLevel = Math.min(100, motionSum / (data.length / 400) * 1.5);
+                }
+                state.prevFrame = new Uint8ClampedArray(data);
+                
+                // Затемнение фона
+                if (!state.showHeatmap) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(0, 0, w, h);
+                }
+                
+                let totalEdge = 0;
+                let edgeCount = 0;
+                
+                // Обработка ячеек
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const x = col * cs;
+                        const y = row * cs;
+                        
+                        // Анализ
+                        let gx = 0, gy = 0, count = 0;
+                        const step = Math.max(2, Math.floor(cs / 3));
+                        
+                        for (let py = y; py < y + cs && py < h; py += step) {
+                            for (let px = x; px < x + cs && px < w; px += step) {
+                                const idx = (py * w + px) * 4;
+                                
+                                if (px > 0 && px < w - 1) {
+                                    const li = (py * w + (px - 1)) * 4;
+                                    const ri = (py * w + (px + 1)) * 4;
+                                    const l = data[li] * 0.299 + data[li+1] * 0.587 + data[li+2] * 0.114;
+                                    const r = data[ri] * 0.299 + data[ri+1] * 0.587 + data[ri+2] * 0.114;
+                                    gx += r - l;
+                                }
+                                
+                                if (py > 0 && py < h - 1) {
+                                    const ti = ((py - 1) * w + px) * 4;
+                                    const bi = ((py + 1) * w + px) * 4;
+                                    const t = data[ti] * 0.299 + data[ti+1] * 0.587 + data[ti+2] * 0.114;
+                                    const b = data[bi] * 0.299 + data[bi+1] * 0.587 + data[bi+2] * 0.114;
+                                    gy += b - t;
+                                }
+                                
+                                count++;
+                            }
+                        }
+                        
+                        if (count === 0) continue;
+                        
+                        const mag = Math.sqrt(gx * gx + gy * gy) / count;
+                        totalEdge += mag;
+                        edgeCount++;
+                        
+                        const intensity = Math.min(1, mag / sens);
+                        
+                        // Тепловая карта
+                        if (state.showHeatmap && intensity > 0.1) {
+                            const hue = Math.min(120, Math.floor(120 - intensity * 120));
+                            ctx.fillStyle = `hsla(${hue}, 100%, 50%, ${intensity * 0.25})`;
+                            ctx.fillRect(x, y, cs, cs);
+                        }
+                        
+                        // Сетка
+                        if (state.showGrid) {
+                            ctx.strokeStyle = `rgba(0, 255, 0, ${intensity * 0.3})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.strokeRect(x, y, cs, cs);
+                        }
+                        
+                        // Векторы
+                        if (state.showVectors && mag > sens * 0.25) {
+                            const cx = x + cs / 2;
+                            const cy = y + cs / 2;
+                            
+                            if (mag > 0) {
+                                const ngx = gx / mag;
+                                const ngy = gy / mag;
+                                const len = cs * 0.4 * intensity;
+                                
+                                ctx.beginPath();
+                                ctx.moveTo(cx, cy);
+                                ctx.lineTo(cx + ngx * len, cy + ngy * len);
+                                ctx.strokeStyle = `rgba(0, 255, 0, ${intensity})`;
+                                ctx.lineWidth = 1.5;
+                                ctx.stroke();
+                                
+                                // Стрелка
+                                const ang = Math.atan2(ngy, ngx);
+                                const as = 5;
+                                ctx.beginPath();
+                                ctx.moveTo(cx + ngx * len, cy + ngy * len);
+                                ctx.lineTo(cx + ngx * len - as * Math.cos(ang - 0.5), cy + ngy * len - as * Math.sin(ang - 0.5));
+                                ctx.lineTo(cx + ngx * len - as * Math.cos(ang + 0.5), cy + ngy * len - as * Math.sin(ang + 0.5));
+                                ctx.closePath();
+                                ctx.fillStyle = `rgba(255, 200, 0, ${intensity})`;
+                                ctx.fill();
+                            }
+                        }
+                    }
+                }
+                
+                state.edgeDensity = Math.min(100, (totalEdge / Math.max(1, edgeCount)) * 1.8);
+            }
+            
+            // --- Рендеринг: Edges ---
+            function renderEdges() {
+                const w = ui.canvas.width;
+                const h = ui.canvas.height;
+                const ctx = state.ctx;
+                
+                ctx.drawImage(state.video, 0, 0, w, h);
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const data = imgData.data;
+                
+                const out = ctx.createImageData(w, h);
+                const outData = out.data;
+                const sens = state.sensitivity;
+                
+                let totalEdge = 0;
+                
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const idx = (y * w + x) * 4;
+                        
+                        // Собель
+                        let gx = 0, gy = 0;
+                        
+                        for (let ky = -1; ky <= 1; ky++) {
+                            for (let kx = -1; kx <= 1; kx++) {
+                                const nidx = ((y + ky) * w + (x + kx)) * 4;
+                                const gray = data[nidx] * 0.299 + data[nidx+1] * 0.587 + data[nidx+2] * 0.114;
+                                
+                                if (kx === -1) gx -= gray * (ky === 0 ? 2 : 1);
+                                if (kx === 1) gx += gray * (ky === 0 ? 2 : 1);
+                                if (ky === -1) gy -= gray * (kx === 0 ? 2 : 1);
+                                if (ky === 1) gy += gray * (kx === 0 ? 2 : 1);
+                            }
+                        }
+                        
+                        const mag = Math.sqrt(gx * gx + gy * gy);
+                        totalEdge += mag;
+                        
+                        if (mag > sens) {
+                            outData[idx] = 0;
+                            outData[idx+1] = 255;
+                            outData[idx+2] = 0;
+                            outData[idx+3] = 255;
+                        } else {
+                            const gray = data[idx] * 0.299 + data[idx+1] * 0.587 + data[idx+2] * 0.114;
+                            outData[idx] = gray * 0.15;
+                            outData[idx+1] = gray * 0.15;
+                            outData[idx+2] = gray * 0.15;
+                            outData[idx+3] = 255;
+                        }
+                    }
+                }
+                
+                ctx.putImageData(out, 0, 0);
+                state.edgeDensity = Math.min(100, totalEdge / (w * h) * 4);
+            }
+            
+            // --- Рендеринг: Depth ---
+            function renderDepth() {
+                const w = ui.canvas.width;
+                const h = ui.canvas.height;
+                const ctx = state.ctx;
+                
+                ctx.drawImage(state.video, 0, 0, w, h);
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const data = imgData.data;
+                
+                const out = ctx.createImageData(w, h);
+                const outData = out.data;
+                
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        const idx = (y * w + x) * 4;
+                        
+                        // Анализ яркости и градиентов для симуляции глубины
+                        const brightness = data[idx] * 0.299 + data[idx+1] * 0.587 + data[idx+2] * 0.114;
+                        
+                        let grad = 0;
+                        if (x > 0 && x < w - 1 && y > 0 && y < h - 1) {
+                            const l = data[(y * w + (x-1)) * 4] * 0.299;
+                            const r = data[(y * w + (x+1)) * 4] * 0.299;
+                            const t = data[((y-1) * w + x) * 4] * 0.299;
+                            const b = data[((y+1) * w + x) * 4] * 0.299;
+                            grad = Math.abs(r - l) + Math.abs(b - t);
+                        }
+                        
+                        // Комбинация яркости и градиента для глубины
+                        const depth = Math.floor(brightness * 0.5 + grad * 0.5 + (1 - y / h) * 40);
+                        
+                        outData[idx] = depth;
+                        outData[idx+1] = depth;
+                        outData[idx+2] = depth;
+                        outData[idx+3] = 255;
+                    }
+                }
+                
+                ctx.putImageData(out, 0, 0);
+            }
+            
+            // --- Рендеринг: Normals ---
+            function renderNormals() {
+                const w = ui.canvas.width;
+                const h = ui.canvas.height;
+                const ctx = state.ctx;
+                
+                ctx.drawImage(state.video, 0, 0, w, h);
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const data = imgData.data;
+                
+                const out = ctx.createImageData(w, h);
+                const outData = out.data;
+                
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const idx = (y * w + x) * 4;
+                        
+                        const l = data[(y * w + (x-1)) * 4] * 0.299 + data[(y * w + (x-1)) * 4 + 1] * 0.587;
+                        const r = data[(y * w + (x+1)) * 4] * 0.299 + data[(y * w + (x+1)) * 4 + 1] * 0.587;
+                        const t = data[((y-1) * w + x) * 4] * 0.299 + data[((y-1) * w + x) * 4 + 1] * 0.587;
+                        const b = data[((y+1) * w + x) * 4] * 0.299 + data[((y+1) * w + x) * 4 + 1] * 0.587;
+                        
+                        const dx = r - l;
+                        const dy = b - t;
+                        
+                        // Нормали в RGB
+                        outData[idx] = Math.floor(128 + dx * 1.5);
+                        outData[idx+1] = Math.floor(128 + dy * 1.5);
+                        outData[idx+2] = 255;
+                        outData[idx+3] = 255;
+                    }
+                }
+                
+                ctx.putImageData(out, 0, 0);
+            }
+            
+            // --- Обновление индикаторов ---
+            function updateIndicators() {
+                ui.edgeIndicator.style.height = state.edgeDensity + '%';
+                ui.motionIndicator.style.height = state.motionLevel + '%';
+            }
+            
+            // --- FPS и статистика ---
+            let frameCount = 0;
+            let lastFpsTime = 0;
+            
+            function updateStats(now, renderTime) {
+                frameCount++;
+                
+                if (now - lastFpsTime >= 1000) {
+                    state.fps = frameCount;
+                    frameCount = 0;
+                    lastFpsTime = now;
+                    ui.fpsEl.textContent = `${state.fps} FPS`;
+                }
+                
+                state.frameTime = renderTime;
+                ui.perfInfo.textContent = `RENDER: ${renderTime.toFixed(1)}ms`;
+            }
+            
+            // --- Главный цикл ---
+            function renderLoop(now) {
+                if (!state.isRunning || !state.video || state.video.readyState < 2) {
+                    requestAnimationFrame(renderLoop);
+                    return;
+                }
+                
+                state.skipCounter++;
+                if (state.skipCounter > state.frameSkip) {
+                    state.skipCounter = 0;
+                    
+                    const start = performance.now();
+                    
+                    if (!state.isProcessing) {
+                        state.isProcessing = true;
+                        
+                        try {
+                            switch(state.mode) {
+                                case 'camera': renderCamera(); break;
+                                case 'wireframe': renderWireframe(); break;
+                                case 'edges': renderEdges(); break;
+                                case 'depth': renderDepth(); break;
+                                case 'normals': renderNormals(); break;
+                                default: renderCamera();
+                            }
+                            
+                            updateIndicators();
+                            updateStats(now, performance.now() - start);
+                            
+                        } catch (e) {
+                            console.error('Render error:', e);
+                        }
+                        
+                        state.isProcessing = false;
+                    }
+                }
+                
+                requestAnimationFrame(renderLoop);
+            }
+            
+            // --- Запуск ---
+            async function start() {
+                initUI();
+                setupEvents();
+                
+                const camOk = await initCamera();
+                if (!camOk) return;
+                
+                state.isRunning = true;
+                requestAnimationFrame(renderLoop);
+            }
+            
+            // --- Очистка ---
+            function cleanup() {
+                state.isRunning = false;
+                if (state.stream) {
+                    state.stream.getTracks().forEach(t => t.stop());
+                }
+            }
+            
+            window.addEventListener('beforeunload', cleanup);
+            start();
+            
+        })();
+    </script>
 </body>
 </html>

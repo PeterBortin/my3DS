@@ -3,38 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>AR Полигональная отрисовка</title>
+    <title>CV Edge Detection • Компьютерное зрение</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: black;
+            background: #000;
+            font-family: 'Courier New', monospace;
             touch-action: none;
         }
         #info {
             position: absolute;
-            top: 20px;
+            top: 15px;
             left: 0;
             width: 100%;
             text-align: center;
-            color: white;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
             z-index: 10;
             pointer-events: none;
-            padding: 10px;
-            box-sizing: border-box;
+            font-size: 14px;
+            letter-spacing: 2px;
         }
         #status {
             position: absolute;
-            bottom: 30px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            color: #aaa;
-            font-size: 14px;
+            bottom: 20px;
+            left: 20px;
+            color: #0f0;
+            font-size: 11px;
+            opacity: 0.7;
             z-index: 10;
             pointer-events: none;
+            text-transform: uppercase;
+        }
+        #fps {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: #ff0;
+            font-size: 11px;
+            opacity: 0.7;
+            z-index: 10;
+            pointer-events: none;
+            font-family: monospace;
         }
         #controls {
             position: absolute;
@@ -43,160 +54,167 @@
             width: 100%;
             display: flex;
             justify-content: center;
-            gap: 20px;
+            gap: 8px;
             z-index: 20;
             pointer-events: none;
+            flex-wrap: wrap;
+            padding: 0 10px;
+            box-sizing: border-box;
         }
         button {
             pointer-events: auto;
-            padding: 12px 24px;
-            background: rgba(30, 30, 30, 0.8);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 30px;
-            backdrop-filter: blur(5px);
-            font-size: 16px;
+            padding: 10px 16px;
+            background: rgba(0, 20, 0, 0.85);
+            color: #0f0;
+            border: 1px solid #0f0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        button:hover {
-            background: rgba(60, 60, 60, 0.9);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+            transition: all 0.15s;
         }
         button.active {
-            background: #4285f4;
-            border-color: #8ab4f8;
+            background: #0f0;
+            color: #000;
+            box-shadow: 0 0 25px #0f0;
+        }
+        button:hover {
+            background: #0f0;
+            color: #000;
         }
         #loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
+            color: #0f0;
             z-index: 100;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.8);
             padding: 20px 40px;
-            border-radius: 40px;
-            backdrop-filter: blur(5px);
+            border: 1px solid #0f0;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+        }
+        canvas {
+            display: block;
+        }
+        #scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 255, 0, 0.5);
+            box-shadow: 0 0 20px #0f0;
+            z-index: 5;
+            pointer-events: none;
+            animation: scan 4s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+        #corners {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            z-index: 4;
+            pointer-events: none;
+        }
+        #corners::before,
+        #corners::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #0f0;
+            border-style: solid;
+        }
+        #corners::before {
+            top: -1px;
+            left: -1px;
+            border-width: 2px 0 0 2px;
+        }
+        #corners::after {
+            bottom: -1px;
+            right: -1px;
+            border-width: 0 2px 2px 0;
         }
     </style>
 </head>
 <body>
     <div id="info">
-        <h2>AR Полигональный рендеринг</h2>
-        <p>Наведите камеру на любую поверхность</p>
+        <span style="background: #000; padding: 5px 15px; border: 1px solid #0f0;">◈ EDGE DETECTION v1.0 ◈</span>
     </div>
-    <div id="status">Ожидание камеры...</div>
+    <div id="status">INITIALIZING CAMERA...</div>
+    <div id="fps">FPS: --</div>
     <div id="controls">
-        <button id="btnCube" class="active">Куб</button>
-        <button id="btnSphere">Сфера</button>
-        <button id="btnTorus">Тор</button>
-        <button id="btnReset">Сбросить позицию</button>
+        <button id="btnOriginal" class="active">RGB</button>
+        <button id="btnEdges">EDGES</button>
+        <button id="btnLines">LINES</button>
+        <button id="btnPoints">POINTS</button>
+        <button id="btnWireframe">WIREFRAME</button>
+        <button id="btnThresholdUp">THRESH +</button>
+        <button id="btnThresholdDown">THRESH -</button>
     </div>
-    <div id="loading">Загрузка...</div>
-
-    <!-- Three.js и вспомогательные библиотеки -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
-            }
-        }
-    </script>
+    <div id="scanline"></div>
+    <div id="corners"></div>
+    <div id="loading">CV SYSTEM BOOT...</div>
 
     <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        // --- Конфигурация ---
+        const CONFIG = {
+            edgeThreshold: 0.15,        // Чувствительность детектора границ
+            lineMinLength: 30,           // Мин. длина линии для отрисовки
+            pointSize: 2.5,              // Размер точек
+            gridSize: 16,                // Размер сетки для wireframe режима
+            sobelStrength: 1.8           // Усиление эффекта Собеля
+        };
 
-        // --- Инициализация сцены ---
-        const scene = new THREE.Scene();
+        // --- Глобальные переменные ---
+        let video, stream;
+        let canvas, ctx;
+        let animationId;
+        let currentMode = 'edges'; // edges, lines, points, wireframe, original
         
-        // Используем заднюю камеру телефона через видео-текстуру
-        let video, videoTexture, videoMaterial, videoMesh;
-        
-        // Основные объекты
-        let renderer, camera;
-        let labelRenderer;
-        let currentObject;
+        // Для FPS счётчика
+        let frameCount = 0;
+        let lastTime = performance.now();
+        let fps = 0;
         
         // UI элементы
         const loadingEl = document.getElementById('loading');
         const statusEl = document.getElementById('status');
-        const btnCube = document.getElementById('btnCube');
-        const btnSphere = document.getElementById('btnSphere');
-        const btnTorus = document.getElementById('btnTorus');
-        const btnReset = document.getElementById('btnReset');
+        const fpsEl = document.getElementById('fps');
 
-        // --- Настройка рендерера ---
-        function initRenderer() {
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Ограничиваем для производительности
-            renderer.shadowMap.enabled = true; // Включаем тени для реализма
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            document.body.appendChild(renderer.domElement);
-
-            // CSS2 Renderer для текстовых подписей
-            labelRenderer = new CSS2DRenderer();
-            labelRenderer.setSize(window.innerWidth, window.innerHeight);
-            labelRenderer.domElement.style.position = 'absolute';
-            labelRenderer.domElement.style.top = '0px';
-            labelRenderer.domElement.style.left = '0px';
-            labelRenderer.domElement.style.pointerEvents = 'none';  // Чтобы не перехватывать клики
-            document.body.appendChild(labelRenderer.domElement);
-        }
-
-        // --- Инициализация камеры (для 3D рендера) ---
-        function initCamera() {
-            // Используем перспективную камеру
-            // Параметры подберем позже под видео, пока стандартные
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 5);
-        }
-
-        // --- Освещение ---
-        function initLights() {
-            // Ambient light
-            const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
-            scene.add(ambientLight);
-            
-            // Directional light (имитация солнца)
-            const dirLight = new THREE.DirectionalLight(0xfff5d1, 1.2);
-            dirLight.position.set(5, 10, 7);
-            dirLight.castShadow = true;
-            dirLight.receiveShadow = true;
-            dirLight.shadow.mapSize.width = 1024;
-            dirLight.shadow.mapSize.height = 1024;
-            const d = 10;
-            dirLight.shadow.camera.left = -d;
-            dirLight.shadow.camera.right = d;
-            dirLight.shadow.camera.top = d;
-            dirLight.shadow.camera.bottom = -d;
-            dirLight.shadow.camera.near = 1;
-            dirLight.shadow.camera.far = 25;
-            dirLight.shadow.bias = -0.001;
-            scene.add(dirLight);
-            
-            // Fill light
-            const fillLight = new THREE.PointLight(0x4466ff, 0.5);
-            fillLight.position.set(-3, 2, 4);
-            scene.add(fillLight);
-            
-            // Back light
-            const backLight = new THREE.PointLight(0xffaa66, 0.3);
-            backLight.position.set(0, 3, -5);
-            scene.add(backLight);
-        }
-
-        // --- Создание видео-фона (захват с камеры) ---
-        async function setupVideoBackground() {
+        // --- Инициализация ---
+        async function init() {
             try {
-                // Запрашиваем доступ к задней камере с высоким разрешением
-                const stream = await navigator.mediaDevices.getUserMedia({
+                // Создаём canvas
+                canvas = document.createElement('canvas');
+                canvas.style.position = 'absolute';
+                canvas.style.top = '0';
+                canvas.style.left = '0';
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvas.style.objectFit = 'cover';
+                document.body.insertBefore(canvas, document.getElementById('info'));
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
+                
+                // Захват видео
+                stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        facingMode: 'environment', // Задняя камера
+                        facingMode: 'environment',
                         width: { ideal: 1280 },
                         height: { ideal: 720 }
                     },
@@ -206,330 +224,526 @@
                 video = document.createElement('video');
                 video.srcObject = stream;
                 video.setAttribute('playsinline', true);
-                video.setAttribute('webkit-playsinline', true);
                 video.muted = true;
                 
-                await new Promise((resolve) => {
+                await new Promise(resolve => {
                     video.onloadedmetadata = () => {
                         video.play().then(resolve);
                     };
                 });
                 
-                // Создаем текстуру из видео
-                videoTexture = new THREE.VideoTexture(video);
-                videoTexture.minFilter = THREE.LinearFilter;
-                videoTexture.magFilter = THREE.LinearFilter;
+                // Настройка canvas под размер видео
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
                 
-                // Подгоняем соотношение сторон камеры под видео
-                const videoAspect = video.videoWidth / video.videoHeight;
-                const windowAspect = window.innerWidth / window.innerHeight;
+                // Настройка кнопок
+                setupControls();
                 
-                let planeWidth, planeHeight;
-                if (windowAspect > videoAspect) {
-                    planeWidth = 20 * windowAspect;
-                    planeHeight = 20;
-                } else {
-                    planeWidth = 20;
-                    planeHeight = 20 / windowAspect;
-                }
-                
-                // Создаем плоскость с видео-текстурой (фон)
-                const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-                videoMaterial = new THREE.MeshStandardMaterial({
-                    map: videoTexture,
-                    side: THREE.DoubleSide,
-                    emissive: new THREE.Color(0x333333)
-                });
-                videoMesh = new THREE.Mesh(geometry, videoMaterial);
-                videoMesh.position.z = -10; // Отодвигаем на задний план
-                scene.add(videoMesh);
-                
-                // Обновляем параметры камеры под видео
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                
-                statusEl.textContent = 'Камера активна • Перемещайте телефон';
+                // Запуск рендеринга
+                statusEl.textContent = 'CV ACTIVE • MODE: EDGE DETECTION';
                 loadingEl.style.display = 'none';
+                
+                // Запуск анимации
+                render();
                 
             } catch (error) {
-                console.error('Ошибка доступа к камере:', error);
-                statusEl.textContent = 'Ошибка: нет доступа к камере. Разрешите использование камеры.';
-                loadingEl.style.display = 'none';
-                // Создаем заглушку
-                scene.background = new THREE.Color(0x111122);
+                console.error('Init error:', error);
+                statusEl.textContent = 'ERROR: CAMERA ACCESS DENIED';
+                loadingEl.innerHTML = 'CAMERA ERROR<br><small style="font-size:12px">Reload page & allow access</small>';
             }
         }
 
-        // --- Создание 3D объектов ---
-        function createCube() {
-            const geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-            const material = new THREE.MeshStandardMaterial({ 
-                color: 0x4285f4,
-                roughness: 0.3,
-                metalness: 0.1,
-                emissive: new THREE.Color(0x112233)
-            });
-            const cube = new THREE.Mesh(geometry, material);
-            cube.castShadow = true;
-            cube.receiveShadow = true;
+        function resizeCanvas() {
+            if (!video.videoWidth) return;
             
-            // Добавим проволочный каркас для подчеркивания полигональности
-            const edges = new THREE.EdgesGeometry(geometry);
-            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-            cube.add(line);
+            const containerAspect = window.innerWidth / window.innerHeight;
+            const videoAspect = video.videoWidth / video.videoHeight;
             
-            return cube;
-        }
-
-        function createSphere() {
-            const geometry = new THREE.SphereGeometry(0.8, 32, 24);
-            const material = new THREE.MeshStandardMaterial({ 
-                color: 0xea4335,
-                roughness: 0.25,
-                metalness: 0.05,
-                wireframe: false
-            });
-            const sphere = new THREE.Mesh(geometry, material);
-            sphere.castShadow = true;
-            sphere.receiveShadow = true;
+            let drawWidth, drawHeight;
             
-            // Wireframe для подчеркивания
-            const wireframe = new THREE.LineSegments(
-                new THREE.EdgesGeometry(geometry),
-                new THREE.LineBasicMaterial({ color: 0xffaa00 })
-            );
-            sphere.add(wireframe);
-            
-            return sphere;
-        }
-
-        function createTorus() {
-            const geometry = new THREE.TorusKnotGeometry(0.7, 0.25, 64, 8);
-            const material = new THREE.MeshStandardMaterial({ 
-                color: 0x34a853,
-                roughness: 0.4,
-                metalness: 0.2,
-                emissive: new THREE.Color(0x113311)
-            });
-            const torus = new THREE.Mesh(geometry, material);
-            torus.castShadow = true;
-            torus.receiveShadow = true;
-            
-            const wireframe = new THREE.LineSegments(
-                new THREE.EdgesGeometry(geometry),
-                new THREE.LineBasicMaterial({ color: 0x88ff88 })
-            );
-            torus.add(wireframe);
-            
-            return torus;
-        }
-
-        // --- Вспомогательные элементы: пол, сетка, оси ---
-        function addHelpers() {
-            // Плоскость для приема теней (невидимая, но с тенью)
-            const planeGeometry = new THREE.CircleGeometry(8, 32);
-            const planeMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x336699, 
-                transparent: true, 
-                opacity: 0.25,
-                side: THREE.DoubleSide
-            });
-            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-            plane.rotation.x = -Math.PI / 2;
-            plane.position.y = -1.5;
-            plane.receiveShadow = true;
-            scene.add(plane);
-            
-            // Сетка для ориентации
-            const gridHelper = new THREE.GridHelper(20, 20, 0x88aaff, 0x334466);
-            gridHelper.position.y = -1.49;
-            scene.add(gridHelper);
-            
-            // Оси
-            // scene.add(new THREE.AxesHelper(5));
-        }
-
-        // --- Текстовая метка ---
-        function createLabel(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            div.style.color = '#fff';
-            div.style.fontSize = '20px';
-            div.style.fontWeight = 'bold';
-            div.style.textShadow = '1px 1px 3px black';
-            div.style.padding = '8px 16px';
-            div.style.background = 'rgba(0,0,0,0.6)';
-            div.style.borderRadius = '20px';
-            div.style.backdropFilter = 'blur(4px)';
-            div.style.border = '1px solid rgba(255,255,255,0.3)';
-            div.style.pointerEvents = 'none';
-            
-            const label = new CSS2DObject(div);
-            return label;
-        }
-
-        // --- Установка текущего объекта ---
-        function setObject(type) {
-            if (currentObject) {
-                scene.remove(currentObject);
-            }
-            
-            let obj;
-            let labelText;
-            switch(type) {
-                case 'cube':
-                    obj = createCube();
-                    labelText = 'Куб';
-                    break;
-                case 'sphere':
-                    obj = createSphere();
-                    labelText = 'Сфера';
-                    break;
-                case 'torus':
-                    obj = createTorus();
-                    labelText = 'Тор';
-                    break;
-                default:
-                    obj = createCube();
-                    labelText = 'Куб';
-            }
-            
-            obj.position.set(0, 0, 0);
-            
-            // Добавляем метку
-            const label = createLabel(labelText);
-            label.position.set(0, 1.5, 0);
-            obj.add(label);
-            
-            scene.add(obj);
-            currentObject = obj;
-            
-            // Подсветка кнопок
-            btnCube.classList.remove('active');
-            btnSphere.classList.remove('active');
-            btnTorus.classList.remove('active');
-            if (type === 'cube') btnCube.classList.add('active');
-            if (type === 'sphere') btnSphere.classList.add('active');
-            if (type === 'torus') btnTorus.classList.add('active');
-        }
-
-        // --- Обработка движения телефона (имитация AR трекинга) ---
-        // Поскольку у нас нет ARCore/ARKit в вебе без WebXR, мы используем
-        // упрощенную модель: объект всегда перед камерой и вращается вместе с телефоном
-        
-        function initDeviceOrientation() {
-            if (window.DeviceOrientationEvent) {
-                window.addEventListener('deviceorientation', (event) => {
-                    if (currentObject && event.beta !== null && event.gamma !== null) {
-                        // Преобразуем углы наклона в поворот объекта
-                        // Beta: -180 to 180 (вперед-назад)
-                        // Gamma: -90 to 90 (влево-вправо)
-                        const beta = event.beta * (Math.PI / 180);
-                        const gamma = event.gamma * (Math.PI / 180);
-                        
-                        // Ограничиваем вращение, чтобы объект не переворачивался сильно
-                        currentObject.rotation.x = beta * 0.5;
-                        currentObject.rotation.y = gamma * 0.8;
-                        currentObject.rotation.z = 0;
-                    }
-                }, true);
-                statusEl.textContent += ' • Датчики активны';
+            if (containerAspect > videoAspect) {
+                drawWidth = window.innerWidth;
+                drawHeight = window.innerWidth / videoAspect;
             } else {
-                console.warn('DeviceOrientation не поддерживается');
-            }
-        }
-
-        // --- Сброс позиции ---
-        function resetPosition() {
-            if (currentObject) {
-                currentObject.position.set(0, 0, 0);
-                currentObject.rotation.set(0, 0, 0);
-            }
-        }
-
-        // --- Анимация ---
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            // Обновляем текстуру видео
-            if (videoTexture) {
-                videoTexture.needsUpdate = true;
+                drawHeight = window.innerHeight;
+                drawWidth = window.innerHeight * videoAspect;
             }
             
-            // Немного анимируем объект для живости
-            if (currentObject) {
-                // Легкое покачивание или вращение можно добавить
-                // currentObject.rotation.y += 0.005;
+            canvas.width = drawWidth;
+            canvas.height = drawHeight;
+            canvas.style.width = drawWidth + 'px';
+            canvas.style.height = drawHeight + 'px';
+            
+            // Центрируем canvas
+            canvas.style.position = 'absolute';
+            canvas.style.left = ((window.innerWidth - drawWidth) / 2) + 'px';
+            canvas.style.top = ((window.innerHeight - drawHeight) / 2) + 'px';
+        }
+
+        // --- Основной цикл рендеринга ---
+        function render() {
+            if (!video || video.readyState < 2) {
+                animationId = requestAnimationFrame(render);
+                return;
             }
             
-            // Рендерим основную сцену
-            renderer.render(scene, camera);
-            labelRenderer.render(scene, camera);
+            // Отрисовываем видео на canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Получаем данные изображения
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Применяем выбранный режим
+            switch(currentMode) {
+                case 'edges':
+                    applySobelEdgeDetection(data, canvas.width, canvas.height);
+                    break;
+                case 'lines':
+                    detectAndDrawLines(data, canvas.width, canvas.height);
+                    break;
+                case 'points':
+                    detectAndDrawPoints(data, canvas.width, canvas.height);
+                    break;
+                case 'wireframe':
+                    drawWireframeGrid(data, canvas.width, canvas.height);
+                    break;
+                case 'original':
+                    // Ничего не делаем, оставляем оригинал
+                    break;
+            }
+            
+            // Обновляем FPS
+            updateFPS();
+            
+            animationId = requestAnimationFrame(render);
         }
 
-        // --- Обработка изменения размера окна ---
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        // --- Алгоритм Собеля (поиск границ) ---
+        function applySobelEdgeDetection(data, width, height) {
+            const output = new Uint8ClampedArray(data.length);
+            const threshold = CONFIG.edgeThreshold * 255 * CONFIG.sobelStrength;
+            
+            // Ядра Собеля
+            const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+            const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+            
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    let gx = 0, gy = 0;
+                    
+                    // Применяем свёртку
+                    for (let ky = -1; ky <= 1; ky++) {
+                        for (let kx = -1; kx <= 1; kx++) {
+                            const idx = ((y + ky) * width + (x + kx)) * 4;
+                            const gray = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
+                            
+                            const kernelIdx = (ky + 1) * 3 + (kx + 1);
+                            gx += gray * sobelX[kernelIdx];
+                            gy += gray * sobelY[kernelIdx];
+                        }
+                    }
+                    
+                    const magnitude = Math.sqrt(gx * gx + gy * gy);
+                    const pixelIdx = (y * width + x) * 4;
+                    
+                    if (magnitude > threshold) {
+                        // Ярко-зелёный для границ
+                        output[pixelIdx] = 0;
+                        output[pixelIdx + 1] = Math.min(255, magnitude * 1.5);
+                        output[pixelIdx + 2] = 0;
+                        output[pixelIdx + 3] = 255;
+                    } else {
+                        // Тёмный фон с оттенком видео
+                        const gray = (data[pixelIdx] * 0.299 + data[pixelIdx + 1] * 0.587 + data[pixelIdx + 2] * 0.114) * 0.3;
+                        output[pixelIdx] = gray;
+                        output[pixelIdx + 1] = gray * 1.2;
+                        output[pixelIdx + 2] = gray;
+                        output[pixelIdx + 3] = 255;
+                    }
+                }
+            }
+            
+            // Копируем результат обратно
+            for (let i = 0; i < data.length; i++) {
+                data[i] = output[i];
+            }
+            
+            ctx.putImageData(new ImageData(data, width, height), 0, 0);
+            
+            // Рисуем HUD элементы поверх
+            drawHUD();
         }
 
-        // --- Инициализация всего ---
-        async function init() {
-            initRenderer();
-            initCamera();
-            initLights();
-            addHelpers();
+        // --- Детекция линий (преобразование Хафа упрощённое) ---
+        function detectAndDrawLines(data, width, height) {
+            // Сначала находим границы Собелем
+            const edges = new Uint8Array(width * height);
+            const threshold = CONFIG.edgeThreshold * 255;
             
-            await setupVideoBackground();
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    let gx = 0, gy = 0;
+                    
+                    for (let ky = -1; ky <= 1; ky++) {
+                        for (let kx = -1; kx <= 1; kx++) {
+                            const idx = ((y + ky) * width + (x + kx)) * 4;
+                            const gray = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
+                            
+                            if (kx === -1 && ky === -1) gx -= gray;
+                            if (kx === 1 && ky === -1) gx += gray;
+                            if (kx === -1 && ky === 1) gx -= gray * 2;
+                            if (kx === 1 && ky === 1) gx += gray * 2;
+                            if (kx === -1 && ky === 0) gx -= gray * 2;
+                            if (kx === 1 && ky === 0) gx += gray * 2;
+                            
+                            if (kx === -1 && ky === -1) gy -= gray;
+                            if (kx === -1 && ky === 1) gy -= gray;
+                            if (kx === 1 && ky === -1) gy += gray;
+                            if (kx === 1 && ky === 1) gy += gray;
+                            if (kx === 0 && ky === -1) gy -= gray * 2;
+                            if (kx === 0 && ky === 1) gy += gray * 2;
+                        }
+                    }
+                    
+                    const magnitude = Math.sqrt(gx * gx + gy * gy);
+                    edges[y * width + x] = magnitude > threshold ? 1 : 0;
+                }
+            }
             
-            setObject('cube');
+            // Очищаем canvas и рисуем видео фоном с низкой яркостью
+            ctx.putImageData(new ImageData(data, width, height), 0, 0);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, width, height);
             
-            initDeviceOrientation();
+            // Рисуем линии
+            ctx.strokeStyle = '#0f0';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
             
-            // Обработчики кнопок
-            btnCube.addEventListener('click', () => setObject('cube'));
-            btnSphere.addEventListener('click', () => setObject('sphere'));
-            btnTorus.addEventListener('click', () => setObject('torus'));
-            btnReset.addEventListener('click', resetPosition);
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    if (edges[y * width + x]) {
+                        // Проверяем соседей для соединения линий
+                        let hasNeighbor = false;
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                if (edges[(y + dy) * width + (x + dx)]) {
+                                    hasNeighbor = true;
+                                    break;
+                                }
+                            }
+                            if (hasNeighbor) break;
+                        }
+                        
+                        if (hasNeighbor) {
+                            ctx.moveTo(x, y);
+                            // Ищем продолжение линии
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for (let dx = -1; dx <= 1; dx++) {
+                                    if (dx === 0 && dy === 0) continue;
+                                    const nx = x + dx, ny = y + dy;
+                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height && edges[ny * width + nx]) {
+                                        ctx.lineTo(nx, ny);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             
-            window.addEventListener('resize', onWindowResize);
-            
-            animate();
+            ctx.stroke();
+            drawHUD();
         }
 
-        // Запуск
-        init().catch(console.error);
-        
-        // Для совместимости с iOS (запрос разрешения на DeviceOrientation)
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            // На iOS нужно запросить разрешение явно по жесту пользователя
-            const requestBtn = document.createElement('button');
-            requestBtn.textContent = 'Включить датчики движения';
-            requestBtn.style.position = 'absolute';
-            requestBtn.style.bottom = '150px';
-            requestBtn.style.left = '50%';
-            requestBtn.style.transform = 'translateX(-50%)';
-            requestBtn.style.zIndex = '1000';
-            requestBtn.style.padding = '12px 24px';
-            requestBtn.style.background = '#4285f4';
-            requestBtn.style.color = 'white';
-            requestBtn.style.border = 'none';
-            requestBtn.style.borderRadius = '30px';
-            requestBtn.style.cursor = 'pointer';
+        // --- Режим точек (ключевые точки) ---
+        function detectAndDrawPoints(data, width, height) {
+            // Находим углы методом Харриса (упрощённо)
+            const corners = [];
+            const blockSize = 4;
+            const threshold = CONFIG.edgeThreshold * 255 * 2;
             
-            requestBtn.addEventListener('click', async () => {
-                const permission = await DeviceOrientationEvent.requestPermission();
-                if (permission === 'granted') {
-                    initDeviceOrientation();
-                    requestBtn.remove();
-                    statusEl.textContent += ' • Датчики включены';
+            // Очищаем canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            
+            for (let y = blockSize; y < height - blockSize; y += 2) {
+                for (let x = blockSize; x < width - blockSize; x += 2) {
+                    let gx = 0, gy = 0;
+                    
+                    // Вычисляем градиенты в окне
+                    for (let ky = -blockSize; ky <= blockSize; ky++) {
+                        for (let kx = -blockSize; kx <= blockSize; kx++) {
+                            const idx = ((y + ky) * width + (x + kx)) * 4;
+                            const gray = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
+                            
+                            if (kx < 0) gx -= gray;
+                            if (kx > 0) gx += gray;
+                            if (ky < 0) gy -= gray;
+                            if (ky > 0) gy += gray;
+                        }
+                    }
+                    
+                    const response = Math.abs(gx) + Math.abs(gy);
+                    
+                    if (response > threshold) {
+                        corners.push({x, y, strength: response});
+                    }
+                }
+            }
+            
+            // Сортировка и отрисовка только сильных углов
+            corners.sort((a, b) => b.strength - a.strength);
+            const maxPoints = 500;
+            
+            ctx.fillStyle = '#0f0';
+            ctx.shadowColor = '#0f0';
+            ctx.shadowBlur = 8;
+            
+            corners.slice(0, maxPoints).forEach((corner, i) => {
+                const alpha = 1 - (i / maxPoints) * 0.7;
+                const size = CONFIG.pointSize * (corner.strength / threshold) * 0.5;
+                
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                ctx.arc(corner.x, corner.y, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Добавляем перекрестие
+                ctx.strokeStyle = `rgba(0, 255, 0, ${alpha * 0.5})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(corner.x - size * 2, corner.y);
+                ctx.lineTo(corner.x + size * 2, corner.y);
+                ctx.moveTo(corner.x, corner.y - size * 2);
+                ctx.lineTo(corner.x, corner.y + size * 2);
+                ctx.stroke();
+            });
+            
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+            drawHUD();
+        }
+
+        // --- Wireframe сетка (анализ структуры) ---
+        function drawWireframeGrid(data, width, height) {
+            const gridSize = CONFIG.gridSize;
+            const cols = Math.ceil(width / gridSize);
+            const rows = Math.ceil(height / gridSize);
+            
+            // Очищаем фон
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Создаём массив градиентов для каждой ячейки
+            const gradients = [];
+            
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const x = col * gridSize;
+                    const y = row * gridSize;
+                    const w = Math.min(gridSize, width - x);
+                    const h = Math.min(gridSize, height - y);
+                    
+                    // Вычисляем средний градиент в ячейке
+                    let sumGx = 0, sumGy = 0, count = 0;
+                    
+                    for (let py = y; py < y + h; py += 2) {
+                        for (let px = x; px < x + w; px += 2) {
+                            const idx = (py * width + px) * 4;
+                            const center = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
+                            
+                            if (px > 0 && px < width - 1) {
+                                const leftIdx = (py * width + (px - 1)) * 4;
+                                const rightIdx = (py * width + (px + 1)) * 4;
+                                const left = (data[leftIdx] * 0.299 + data[leftIdx + 1] * 0.587 + data[leftIdx + 2] * 0.114);
+                                const right = (data[rightIdx] * 0.299 + data[rightIdx + 1] * 0.587 + data[rightIdx + 2] * 0.114);
+                                sumGx += right - left;
+                            }
+                            
+                            if (py > 0 && py < height - 1) {
+                                const topIdx = ((py - 1) * width + px) * 4;
+                                const bottomIdx = ((py + 1) * width + px) * 4;
+                                const top = (data[topIdx] * 0.299 + data[topIdx + 1] * 0.587 + data[topIdx + 2] * 0.114);
+                                const bottom = (data[bottomIdx] * 0.299 + data[bottomIdx + 1] * 0.587 + data[bottomIdx + 2] * 0.114);
+                                sumGy += bottom - top;
+                            }
+                            
+                            count++;
+                        }
+                    }
+                    
+                    if (count > 0) {
+                        gradients.push({
+                            x, y, w, h,
+                            gx: sumGx / count,
+                            gy: sumGy / count,
+                            magnitude: Math.sqrt(sumGx * sumGx + sumGy * sumGy) / count
+                        });
+                    }
+                }
+            }
+            
+            // Рисуем сетку на основе градиентов
+            ctx.strokeStyle = '#0f0';
+            ctx.lineWidth = 1.5;
+            ctx.shadowColor = '#0f0';
+            ctx.shadowBlur = 5;
+            
+            gradients.forEach(g => {
+                const intensity = Math.min(1, g.magnitude / 50);
+                const alpha = intensity * 0.8;
+                
+                // Рисуем рамку ячейки
+                ctx.strokeStyle = `rgba(0, 255, 0, ${alpha})`;
+                ctx.strokeRect(g.x, g.y, g.w, g.h);
+                
+                // Рисуем вектор градиента
+                if (g.magnitude > 20) {
+                    const centerX = g.x + g.w / 2;
+                    const centerY = g.y + g.h / 2;
+                    const len = Math.min(g.w, g.h) * 0.4 * intensity;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.lineTo(centerX + g.gx * len, centerY + g.gy * len);
+                    ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    
+                    // Стрелка
+                    const angle = Math.atan2(g.gy, g.gx);
+                    const arrowSize = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(centerX + g.gx * len, centerY + g.gy * len);
+                    ctx.lineTo(
+                        centerX + g.gx * len - arrowSize * Math.cos(angle - 0.8),
+                        centerY + g.gy * len - arrowSize * Math.sin(angle - 0.8)
+                    );
+                    ctx.lineTo(
+                        centerX + g.gx * len - arrowSize * Math.cos(angle + 0.8),
+                        centerY + g.gy * len - arrowSize * Math.sin(angle + 0.8)
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;
+                    ctx.fill();
                 }
             });
             
-            document.body.appendChild(requestBtn);
+            ctx.shadowBlur = 0;
+            drawHUD();
         }
+
+        // --- HUD элементы ---
+        function drawHUD() {
+            // Рамка прицела
+            ctx.strokeStyle = '#0f0';
+            ctx.lineWidth = 1;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#0f0';
+            
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const size = 50;
+            
+            ctx.beginPath();
+            ctx.moveTo(cx - size, cy);
+            ctx.lineTo(cx - 20, cy);
+            ctx.moveTo(cx + 20, cy);
+            ctx.lineTo(cx + size, cy);
+            ctx.moveTo(cx, cy - size);
+            ctx.lineTo(cx, cy - 20);
+            ctx.moveTo(cx, cy + 20);
+            ctx.lineTo(cx, cy + size);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            
+            // Информация о режиме
+            ctx.font = '12px "Courier New", monospace';
+            ctx.fillStyle = '#0f0';
+            ctx.textAlign = 'left';
+            ctx.fillText(`MODE: ${currentMode.toUpperCase()}`, 20, 40);
+            ctx.fillText(`THRESH: ${CONFIG.edgeThreshold.toFixed(2)}`, 20, 60);
+            ctx.fillText(`RES: ${canvas.width}x${canvas.height}`, 20, 80);
+        }
+
+        // --- FPS счётчик ---
+        function updateFPS() {
+            frameCount++;
+            const now = performance.now();
+            const delta = now - lastTime;
+            
+            if (delta >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = now;
+                fpsEl.textContent = `FPS: ${fps}`;
+            }
+        }
+
+        // --- Управление ---
+        function setupControls() {
+            document.getElementById('btnOriginal').addEventListener('click', () => {
+                currentMode = 'original';
+                updateButtonState('btnOriginal');
+                statusEl.textContent = 'CV ACTIVE • MODE: ORIGINAL';
+            });
+            
+            document.getElementById('btnEdges').addEventListener('click', () => {
+                currentMode = 'edges';
+                updateButtonState('btnEdges');
+                statusEl.textContent = 'CV ACTIVE • MODE: SOBEL EDGE DETECTION';
+            });
+            
+            document.getElementById('btnLines').addEventListener('click', () => {
+                currentMode = 'lines';
+                updateButtonState('btnLines');
+                statusEl.textContent = 'CV ACTIVE • MODE: LINE DETECTION';
+            });
+            
+            document.getElementById('btnPoints').addEventListener('click', () => {
+                currentMode = 'points';
+                updateButtonState('btnPoints');
+                statusEl.textContent = 'CV ACTIVE • MODE: CORNER DETECTION';
+            });
+            
+            document.getElementById('btnWireframe').addEventListener('click', () => {
+                currentMode = 'wireframe';
+                updateButtonState('btnWireframe');
+                statusEl.textContent = 'CV ACTIVE • MODE: WIREFRAME ANALYSIS';
+            });
+            
+            document.getElementById('btnThresholdUp').addEventListener('click', () => {
+                CONFIG.edgeThreshold = Math.min(0.5, CONFIG.edgeThreshold + 0.02);
+            });
+            
+            document.getElementById('btnThresholdDown').addEventListener('click', () => {
+                CONFIG.edgeThreshold = Math.max(0.02, CONFIG.edgeThreshold - 0.02);
+            });
+            
+            function updateButtonState(activeId) {
+                ['btnOriginal', 'btnEdges', 'btnLines', 'btnPoints', 'btnWireframe'].forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (id === activeId) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+        }
+
+        // --- Очистка при уходе со страницы ---
+        window.addEventListener('beforeunload', () => {
+            if (animationId) cancelAnimationFrame(animationId);
+            if (stream) stream.getTracks().forEach(track => track.stop());
+        });
+
+        // --- Запуск ---
+        init();
     </script>
 </body>
 </html>

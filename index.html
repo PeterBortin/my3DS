@@ -2,90 +2,75 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>CV Edge Detection • Компьютерное зрение</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+    <title>Wireframe CV • Real-time Analysis</title>
     <style>
         body {
             margin: 0;
+            padding: 0;
             overflow: hidden;
             background: #000;
             font-family: 'Courier New', monospace;
             touch-action: none;
+            -webkit-tap-highlight-color: transparent;
         }
-        #info {
+        #status-bar {
             position: absolute;
-            top: 15px;
+            top: 0;
             left: 0;
-            width: 100%;
-            text-align: center;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
             color: #0f0;
-            text-shadow: 0 0 10px #0f0;
-            z-index: 10;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 12px;
+            letter-spacing: 1px;
+            z-index: 20;
             pointer-events: none;
-            font-size: 14px;
-            letter-spacing: 2px;
+            text-shadow: 0 0 5px #0f0;
         }
-        #status {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            color: #0f0;
-            font-size: 11px;
-            opacity: 0.7;
-            z-index: 10;
-            pointer-events: none;
-            text-transform: uppercase;
-        }
-        #fps {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            color: #ff0;
-            font-size: 11px;
-            opacity: 0.7;
-            z-index: 10;
-            pointer-events: none;
-            font-family: monospace;
+        #status-bar span {
+            margin-right: 20px;
         }
         #controls {
             position: absolute;
-            bottom: 80px;
+            bottom: 20px;
             left: 0;
-            width: 100%;
+            right: 0;
             display: flex;
             justify-content: center;
-            gap: 8px;
-            z-index: 20;
+            gap: 10px;
+            padding: 10px;
+            z-index: 30;
             pointer-events: none;
             flex-wrap: wrap;
-            padding: 0 10px;
-            box-sizing: border-box;
         }
         button {
             pointer-events: auto;
-            padding: 10px 16px;
-            background: rgba(0, 20, 0, 0.85);
+            padding: 8px 16px;
+            background: rgba(0, 20, 0, 0.9);
             color: #0f0;
             border: 1px solid #0f0;
             border-radius: 4px;
             font-family: 'Courier New', monospace;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
             cursor: pointer;
             backdrop-filter: blur(4px);
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
             transition: all 0.15s;
+            min-width: 70px;
         }
         button.active {
             background: #0f0;
             color: #000;
-            box-shadow: 0 0 25px #0f0;
+            box-shadow: 0 0 20px #0f0;
         }
-        button:hover {
-            background: #0f0;
-            color: #000;
+        button:active {
+            transform: scale(0.95);
         }
         #loading {
             position: absolute;
@@ -93,657 +78,754 @@
             left: 50%;
             transform: translate(-50%, -50%);
             color: #0f0;
-            z-index: 100;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px 40px;
+            background: rgba(0,0,0,0.9);
+            padding: 20px 30px;
             border: 1px solid #0f0;
-            font-family: 'Courier New', monospace;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+            z-index: 100;
+            font-size: 14px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0,255,0,0.5);
+        }
+        #debug {
+            position: absolute;
+            bottom: 100px;
+            left: 10px;
+            color: #0f0;
+            font-size: 10px;
+            opacity: 0.6;
+            z-index: 25;
+            pointer-events: none;
+            background: rgba(0,0,0,0.5);
+            padding: 5px;
+            border-radius: 3px;
         }
         canvas {
             display: block;
-        }
-        #scanline {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
-            height: 2px;
-            background: rgba(0, 255, 0, 0.5);
-            box-shadow: 0 0 20px #0f0;
-            z-index: 5;
-            pointer-events: none;
-            animation: scan 4s linear infinite;
+            height: 100%;
+            object-fit: cover;
         }
-        @keyframes scan {
-            0% { top: 0%; }
-            100% { top: 100%; }
-        }
-        #corners {
+        .slider-container {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            bottom: 10px;
-            border: 1px solid rgba(0, 255, 0, 0.3);
-            z-index: 4;
+            bottom: 120px;
+            left: 20px;
+            right: 20px;
+            z-index: 25;
             pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        #corners::before,
-        #corners::after {
-            content: '';
-            position: absolute;
+        .slider-container label {
+            color: #0f0;
+            font-size: 10px;
+            text-shadow: 0 0 5px #0f0;
+        }
+        input[type="range"] {
+            pointer-events: auto;
+            flex: 1;
+            height: 3px;
+            -webkit-appearance: none;
+            background: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
             width: 20px;
             height: 20px;
-            border-color: #0f0;
-            border-style: solid;
-        }
-        #corners::before {
-            top: -1px;
-            left: -1px;
-            border-width: 2px 0 0 2px;
-        }
-        #corners::after {
-            bottom: -1px;
-            right: -1px;
-            border-width: 0 2px 2px 0;
+            background: #0f0;
+            border: 2px solid #000;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px #0f0;
         }
     </style>
 </head>
 <body>
-    <div id="info">
-        <span style="background: #000; padding: 5px 15px; border: 1px solid #0f0;">◈ EDGE DETECTION v1.0 ◈</span>
+    <div id="status-bar">
+        <span id="mode-indicator">◈ WIREFRAME ANALYSIS</span>
+        <span id="resolution"></span>
+        <span id="performance"></span>
     </div>
-    <div id="status">INITIALIZING CAMERA...</div>
-    <div id="fps">FPS: --</div>
+    
+    <div id="debug"></div>
+    
+    <div class="slider-container">
+        <label>CELL SIZE</label>
+        <input type="range" id="cellSizeSlider" min="8" max="40" value="20" step="2">
+        <label id="cellSizeValue">20</label>
+    </div>
+    
     <div id="controls">
-        <button id="btnOriginal" class="active">RGB</button>
-        <button id="btnEdges">EDGES</button>
-        <button id="btnLines">LINES</button>
-        <button id="btnPoints">POINTS</button>
-        <button id="btnWireframe">WIREFRAME</button>
-        <button id="btnThresholdUp">THRESH +</button>
-        <button id="btnThresholdDown">THRESH -</button>
+        <button id="btnCamera" class="active">CAM</button>
+        <button id="btnWireframe">WIRE</button>
+        <button id="btnEdges">EDGE</button>
+        <button id="btnPoints">POINT</button>
+        <button id="btnThreshold">SENSE</button>
     </div>
-    <div id="scanline"></div>
-    <div id="corners"></div>
-    <div id="loading">CV SYSTEM BOOT...</div>
+    
+    <div id="loading">INITIALIZING CV SYSTEM...</div>
 
-    <script type="module">
-        // --- Конфигурация ---
-        const CONFIG = {
-            edgeThreshold: 0.15,        // Чувствительность детектора границ
-            lineMinLength: 30,           // Мин. длина линии для отрисовки
-            pointSize: 2.5,              // Размер точек
-            gridSize: 16,                // Размер сетки для wireframe режима
-            sobelStrength: 1.8           // Усиление эффекта Собеля
-        };
-
-        // --- Глобальные переменные ---
-        let video, stream;
-        let canvas, ctx;
-        let animationId;
-        let currentMode = 'edges'; // edges, lines, points, wireframe, original
-        
-        // Для FPS счётчика
-        let frameCount = 0;
-        let lastTime = performance.now();
-        let fps = 0;
-        
-        // UI элементы
-        const loadingEl = document.getElementById('loading');
-        const statusEl = document.getElementById('status');
-        const fpsEl = document.getElementById('fps');
-
-        // --- Инициализация ---
-        async function init() {
-            try {
-                // Создаём canvas
-                canvas = document.createElement('canvas');
-                canvas.style.position = 'absolute';
-                canvas.style.top = '0';
-                canvas.style.left = '0';
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
-                canvas.style.objectFit = 'cover';
-                document.body.insertBefore(canvas, document.getElementById('info'));
-                ctx = canvas.getContext('2d', { willReadFrequently: true });
-                
-                // Захват видео
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
-                    audio: false
-                });
-                
-                video = document.createElement('video');
-                video.srcObject = stream;
-                video.setAttribute('playsinline', true);
-                video.muted = true;
-                
-                await new Promise(resolve => {
-                    video.onloadedmetadata = () => {
-                        video.play().then(resolve);
-                    };
-                });
-                
-                // Настройка canvas под размер видео
-                resizeCanvas();
-                window.addEventListener('resize', resizeCanvas);
-                
-                // Настройка кнопок
-                setupControls();
-                
-                // Запуск рендеринга
-                statusEl.textContent = 'CV ACTIVE • MODE: EDGE DETECTION';
-                loadingEl.style.display = 'none';
-                
-                // Запуск анимации
-                render();
-                
-            } catch (error) {
-                console.error('Init error:', error);
-                statusEl.textContent = 'ERROR: CAMERA ACCESS DENIED';
-                loadingEl.innerHTML = 'CAMERA ERROR<br><small style="font-size:12px">Reload page & allow access</small>';
-            }
-        }
-
-        function resizeCanvas() {
-            if (!video.videoWidth) return;
+    <script>
+        (function() {
+            "use strict";
             
-            const containerAspect = window.innerWidth / window.innerHeight;
-            const videoAspect = video.videoWidth / video.videoHeight;
+            // --- Глобальные переменные с проверкой инициализации ---
+            let video = null;
+            let stream = null;
+            let canvas = null;
+            let ctx = null;
+            let animationFrame = null;
+            let isRunning = false;
+            let frameSkip = 0;
+            const MAX_FRAME_SKIP = 1; // Обрабатываем каждый второй кадр для производительности
             
-            let drawWidth, drawHeight;
+            // Режимы
+            const MODES = {
+                CAMERA: 'camera',
+                WIREFRAME: 'wireframe',
+                EDGES: 'edges',
+                POINTS: 'points'
+            };
+            let currentMode = MODES.WIREFRAME;
             
-            if (containerAspect > videoAspect) {
-                drawWidth = window.innerWidth;
-                drawHeight = window.innerWidth / videoAspect;
-            } else {
-                drawHeight = window.innerHeight;
-                drawWidth = window.innerHeight * videoAspect;
-            }
+            // Настройки
+            const config = {
+                cellSize: 20,
+                threshold: 30,
+                pointDensity: 3,
+                edgeIntensity: 1.5,
+                showVectors: true,
+                showGrid: true
+            };
             
-            canvas.width = drawWidth;
-            canvas.height = drawHeight;
-            canvas.style.width = drawWidth + 'px';
-            canvas.style.height = drawHeight + 'px';
+            // Для FPS
+            let fps = 0;
+            let frameCount = 0;
+            let lastFpsUpdate = 0;
+            let processingTime = 0;
             
-            // Центрируем canvas
-            canvas.style.position = 'absolute';
-            canvas.style.left = ((window.innerWidth - drawWidth) / 2) + 'px';
-            canvas.style.top = ((window.innerHeight - drawHeight) / 2) + 'px';
-        }
-
-        // --- Основной цикл рендеринга ---
-        function render() {
-            if (!video || video.readyState < 2) {
-                animationId = requestAnimationFrame(render);
-                return;
-            }
+            // UI элементы
+            const loadingEl = document.getElementById('loading');
+            const modeIndicator = document.getElementById('mode-indicator');
+            const resolutionEl = document.getElementById('resolution');
+            const performanceEl = document.getElementById('performance');
+            const debugEl = document.getElementById('debug');
+            const cellSizeSlider = document.getElementById('cellSizeSlider');
+            const cellSizeValue = document.getElementById('cellSizeValue');
             
-            // Отрисовываем видео на canvas
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Получаем данные изображения
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            
-            // Применяем выбранный режим
-            switch(currentMode) {
-                case 'edges':
-                    applySobelEdgeDetection(data, canvas.width, canvas.height);
-                    break;
-                case 'lines':
-                    detectAndDrawLines(data, canvas.width, canvas.height);
-                    break;
-                case 'points':
-                    detectAndDrawPoints(data, canvas.width, canvas.height);
-                    break;
-                case 'wireframe':
-                    drawWireframeGrid(data, canvas.width, canvas.height);
-                    break;
-                case 'original':
-                    // Ничего не делаем, оставляем оригинал
-                    break;
-            }
-            
-            // Обновляем FPS
-            updateFPS();
-            
-            animationId = requestAnimationFrame(render);
-        }
-
-        // --- Алгоритм Собеля (поиск границ) ---
-        function applySobelEdgeDetection(data, width, height) {
-            const output = new Uint8ClampedArray(data.length);
-            const threshold = CONFIG.edgeThreshold * 255 * CONFIG.sobelStrength;
-            
-            // Ядра Собеля
-            const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
-            const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
-            
-            for (let y = 1; y < height - 1; y++) {
-                for (let x = 1; x < width - 1; x++) {
-                    let gx = 0, gy = 0;
-                    
-                    // Применяем свёртку
-                    for (let ky = -1; ky <= 1; ky++) {
-                        for (let kx = -1; kx <= 1; kx++) {
-                            const idx = ((y + ky) * width + (x + kx)) * 4;
-                            const gray = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
-                            
-                            const kernelIdx = (ky + 1) * 3 + (kx + 1);
-                            gx += gray * sobelX[kernelIdx];
-                            gy += gray * sobelY[kernelIdx];
-                        }
-                    }
-                    
-                    const magnitude = Math.sqrt(gx * gx + gy * gy);
-                    const pixelIdx = (y * width + x) * 4;
-                    
-                    if (magnitude > threshold) {
-                        // Ярко-зелёный для границ
-                        output[pixelIdx] = 0;
-                        output[pixelIdx + 1] = Math.min(255, magnitude * 1.5);
-                        output[pixelIdx + 2] = 0;
-                        output[pixelIdx + 3] = 255;
+            // --- Функция логирования с проверкой ---
+            function log(message, isError = false) {
+                if (typeof message !== 'string') message = String(message);
+                console.log(`[CV] ${message}`);
+                if (debugEl) {
+                    debugEl.textContent = message;
+                    if (isError) {
+                        debugEl.style.color = '#f00';
                     } else {
-                        // Тёмный фон с оттенком видео
-                        const gray = (data[pixelIdx] * 0.299 + data[pixelIdx + 1] * 0.587 + data[pixelIdx + 2] * 0.114) * 0.3;
-                        output[pixelIdx] = gray;
-                        output[pixelIdx + 1] = gray * 1.2;
-                        output[pixelIdx + 2] = gray;
-                        output[pixelIdx + 3] = 255;
+                        debugEl.style.color = '#0f0';
                     }
                 }
             }
             
-            // Копируем результат обратно
-            for (let i = 0; i < data.length; i++) {
-                data[i] = output[i];
-            }
-            
-            ctx.putImageData(new ImageData(data, width, height), 0, 0);
-            
-            // Рисуем HUD элементы поверх
-            drawHUD();
-        }
-
-        // --- Детекция линий (преобразование Хафа упрощённое) ---
-        function detectAndDrawLines(data, width, height) {
-            // Сначала находим границы Собелем
-            const edges = new Uint8Array(width * height);
-            const threshold = CONFIG.edgeThreshold * 255;
-            
-            for (let y = 1; y < height - 1; y++) {
-                for (let x = 1; x < width - 1; x++) {
-                    let gx = 0, gy = 0;
+            // --- Безопасное создание canvas ---
+            function createCanvas() {
+                try {
+                    canvas = document.createElement('canvas');
+                    canvas.style.position = 'absolute';
+                    canvas.style.top = '0';
+                    canvas.style.left = '0';
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                    canvas.style.objectFit = 'cover';
                     
-                    for (let ky = -1; ky <= 1; ky++) {
-                        for (let kx = -1; kx <= 1; kx++) {
-                            const idx = ((y + ky) * width + (x + kx)) * 4;
-                            const gray = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
-                            
-                            if (kx === -1 && ky === -1) gx -= gray;
-                            if (kx === 1 && ky === -1) gx += gray;
-                            if (kx === -1 && ky === 1) gx -= gray * 2;
-                            if (kx === 1 && ky === 1) gx += gray * 2;
-                            if (kx === -1 && ky === 0) gx -= gray * 2;
-                            if (kx === 1 && ky === 0) gx += gray * 2;
-                            
-                            if (kx === -1 && ky === -1) gy -= gray;
-                            if (kx === -1 && ky === 1) gy -= gray;
-                            if (kx === 1 && ky === -1) gy += gray;
-                            if (kx === 1 && ky === 1) gy += gray;
-                            if (kx === 0 && ky === -1) gy -= gray * 2;
-                            if (kx === 0 && ky === 1) gy += gray * 2;
-                        }
+                    // Вставляем перед остальными элементами
+                    const body = document.body;
+                    const firstChild = body.firstChild;
+                    body.insertBefore(canvas, firstChild);
+                    
+                    ctx = canvas.getContext('2d', { 
+                        willReadFrequently: false,
+                        alpha: false,
+                        desynchronized: true // Оптимизация для низкой задержки
+                    });
+                    
+                    if (!ctx) {
+                        throw new Error('Cannot get 2D context');
                     }
                     
-                    const magnitude = Math.sqrt(gx * gx + gy * gy);
-                    edges[y * width + x] = magnitude > threshold ? 1 : 0;
+                    log('Canvas created successfully');
+                    return true;
+                } catch (e) {
+                    log('Canvas creation failed: ' + e.message, true);
+                    return false;
                 }
             }
             
-            // Очищаем canvas и рисуем видео фоном с низкой яркостью
-            ctx.putImageData(new ImageData(data, width, height), 0, 0);
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(0, 0, width, height);
+            // --- Безопасный доступ к камере ---
+            async function initCamera() {
+                try {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        throw new Error('getUserMedia not supported');
+                    }
+                    
+                    const constraints = {
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 640 },  // Снижаем разрешение для производительности
+                            height: { ideal: 480 },
+                            frameRate: { ideal: 30 }
+                        },
+                        audio: false
+                    };
+                    
+                    log('Requesting camera access...');
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    
+                    video = document.createElement('video');
+                    video.srcObject = stream;
+                    video.setAttribute('playsinline', true);
+                    video.setAttribute('webkit-playsinline', true);
+                    video.muted = true;
+                    
+                    // Ждём загрузки метаданных
+                    await new Promise((resolve, reject) => {
+                        video.onloadedmetadata = () => {
+                            log(`Video ready: ${video.videoWidth}x${video.videoHeight}`);
+                            resolve();
+                        };
+                        video.onerror = () => reject(new Error('Video load failed'));
+                        video.play().catch(reject);
+                    });
+                    
+                    // Настраиваем размер canvas
+                    resizeCanvas();
+                    
+                    log('Camera initialized');
+                    return true;
+                    
+                } catch (error) {
+                    log('Camera error: ' + error.message, true);
+                    loadingEl.innerHTML = `CAMERA ERROR<br><small>${error.message}</small>`;
+                    return false;
+                }
+            }
             
-            // Рисуем линии
-            ctx.strokeStyle = '#0f0';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
+            // --- Изменение размера canvas ---
+            function resizeCanvas() {
+                if (!canvas || !video || !video.videoWidth) return;
+                
+                const containerWidth = window.innerWidth;
+                const containerHeight = window.innerHeight;
+                const videoAspect = video.videoWidth / video.videoHeight;
+                const containerAspect = containerWidth / containerHeight;
+                
+                let drawWidth, drawHeight;
+                
+                if (containerAspect > videoAspect) {
+                    drawWidth = containerWidth;
+                    drawHeight = containerWidth / videoAspect;
+                } else {
+                    drawHeight = containerHeight;
+                    drawWidth = containerHeight * videoAspect;
+                }
+                
+                // Ограничиваем максимальный размер для производительности
+                const maxSize = 1024;
+                if (drawWidth > maxSize || drawHeight > maxSize) {
+                    const scale = maxSize / Math.max(drawWidth, drawHeight);
+                    drawWidth *= scale;
+                    drawHeight *= scale;
+                }
+                
+                canvas.width = Math.floor(drawWidth);
+                canvas.height = Math.floor(drawHeight);
+                
+                // Центрирование через CSS
+                canvas.style.position = 'absolute';
+                canvas.style.left = ((containerWidth - drawWidth) / 2) + 'px';
+                canvas.style.top = ((containerHeight - drawHeight) / 2) + 'px';
+                canvas.style.width = drawWidth + 'px';
+                canvas.style.height = drawHeight + 'px';
+                
+                if (resolutionEl) {
+                    resolutionEl.textContent = `${canvas.width}x${canvas.height}`;
+                }
+                
+                log(`Canvas resized: ${canvas.width}x${canvas.height}`);
+            }
             
-            for (let y = 1; y < height - 1; y++) {
-                for (let x = 1; x < width - 1; x++) {
-                    if (edges[y * width + x]) {
-                        // Проверяем соседей для соединения линий
-                        let hasNeighbor = false;
-                        for (let dy = -1; dy <= 1; dy++) {
-                            for (let dx = -1; dx <= 1; dx++) {
-                                if (dx === 0 && dy === 0) continue;
-                                if (edges[(y + dy) * width + (x + dx)]) {
-                                    hasNeighbor = true;
-                                    break;
+            // --- Оптимизированная отрисовка wireframe ---
+            function renderWireframe() {
+                if (!ctx || !video || video.readyState < 2) return;
+                
+                const startTime = performance.now();
+                
+                const w = canvas.width;
+                const h = canvas.height;
+                
+                // Рисуем видео
+                ctx.drawImage(video, 0, 0, w, h);
+                
+                // Получаем данные только если нужно анализировать
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const data = imageData.data;
+                
+                // Размер ячейки
+                const cellSize = config.cellSize;
+                const cols = Math.floor(w / cellSize);
+                const rows = Math.floor(h / cellSize);
+                
+                // Затемняем фон для лучшей видимости сетки
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, w, h);
+                
+                // Рисуем сетку и векторы
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#0f0';
+                
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const x = col * cellSize;
+                        const y = row * cellSize;
+                        
+                        // Вычисляем среднюю яркость и градиент в ячейке
+                        let sumBrightness = 0;
+                        let gx = 0, gy = 0;
+                        let pixelCount = 0;
+                        
+                        // Сэмплируем с шагом для производительности
+                        const sampleStep = Math.max(2, Math.floor(cellSize / 4));
+                        
+                        for (let py = y; py < y + cellSize && py < h; py += sampleStep) {
+                            for (let px = x; px < x + cellSize && px < w; px += sampleStep) {
+                                const idx = (py * w + px) * 4;
+                                
+                                // Яркость
+                                const brightness = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
+                                sumBrightness += brightness;
+                                
+                                // Простые градиенты
+                                if (px > 0 && px < w - 1) {
+                                    const leftIdx = (py * w + (px - 1)) * 4;
+                                    const rightIdx = (py * w + (px + 1)) * 4;
+                                    const left = (data[leftIdx] * 0.299 + data[leftIdx + 1] * 0.587 + data[leftIdx + 2] * 0.114);
+                                    const right = (data[rightIdx] * 0.299 + data[rightIdx + 1] * 0.587 + data[rightIdx + 2] * 0.114);
+                                    gx += right - left;
                                 }
+                                
+                                if (py > 0 && py < h - 1) {
+                                    const topIdx = ((py - 1) * w + px) * 4;
+                                    const bottomIdx = ((py + 1) * w + px) * 4;
+                                    const top = (data[topIdx] * 0.299 + data[topIdx + 1] * 0.587 + data[topIdx + 2] * 0.114);
+                                    const bottom = (data[bottomIdx] * 0.299 + data[bottomIdx + 1] * 0.587 + data[bottomIdx + 2] * 0.114);
+                                    gy += bottom - top;
+                                }
+                                
+                                pixelCount++;
                             }
-                            if (hasNeighbor) break;
                         }
                         
-                        if (hasNeighbor) {
-                            ctx.moveTo(x, y);
-                            // Ищем продолжение линии
-                            for (let dy = -1; dy <= 1; dy++) {
-                                for (let dx = -1; dx <= 1; dx++) {
-                                    if (dx === 0 && dy === 0) continue;
-                                    const nx = x + dx, ny = y + dy;
-                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height && edges[ny * width + nx]) {
-                                        ctx.lineTo(nx, ny);
-                                    }
+                        if (pixelCount === 0) continue;
+                        
+                        const avgBrightness = sumBrightness / pixelCount;
+                        const gradientMagnitude = Math.sqrt(gx * gx + gy * gy) / pixelCount;
+                        
+                        // Нормализуем
+                        const intensity = Math.min(1, gradientMagnitude / config.threshold);
+                        const brightnessNorm = avgBrightness / 255;
+                        
+                        // Цвет на основе яркости и градиента
+                        const greenValue = Math.floor(100 + 155 * intensity);
+                        const alpha = 0.3 + 0.7 * intensity;
+                        
+                        // Рисуем ячейку сетки
+                        if (config.showGrid) {
+                            ctx.strokeStyle = `rgba(0, ${greenValue}, 0, ${alpha * 0.5})`;
+                            ctx.strokeRect(x, y, cellSize, cellSize);
+                        }
+                        
+                        // Рисуем вектор градиента если он значительный
+                        if (config.showVectors && gradientMagnitude > config.threshold * 0.3) {
+                            const centerX = x + cellSize / 2;
+                            const centerY = y + cellSize / 2;
+                            const vectorLength = cellSize * 0.4 * intensity;
+                            
+                            // Нормализуем направление
+                            const mag = Math.sqrt(gx * gx + gy * gy);
+                            if (mag > 0) {
+                                const normGx = gx / mag;
+                                const normGy = gy / mag;
+                                
+                                ctx.beginPath();
+                                ctx.moveTo(centerX, centerY);
+                                ctx.lineTo(centerX + normGx * vectorLength, centerY + normGy * vectorLength);
+                                ctx.strokeStyle = `rgba(255, ${100 + Math.floor(155 * brightnessNorm)}, 0, ${alpha})`;
+                                ctx.lineWidth = 2;
+                                ctx.stroke();
+                                
+                                // Стрелка
+                                const arrowSize = 5;
+                                const angle = Math.atan2(normGy, normGx);
+                                ctx.beginPath();
+                                ctx.moveTo(centerX + normGx * vectorLength, centerY + normGy * vectorLength);
+                                ctx.lineTo(
+                                    centerX + normGx * vectorLength - arrowSize * Math.cos(angle - 0.5),
+                                    centerY + normGy * vectorLength - arrowSize * Math.sin(angle - 0.5)
+                                );
+                                ctx.lineTo(
+                                    centerX + normGx * vectorLength - arrowSize * Math.cos(angle + 0.5),
+                                    centerY + normGy * vectorLength - arrowSize * Math.sin(angle + 0.5)
+                                );
+                                ctx.closePath();
+                                ctx.fillStyle = `rgba(255, 200, 0, ${alpha})`;
+                                ctx.fill();
+                            }
+                        }
+                        
+                        // Индикатор яркости в углу ячейки
+                        if (gradientMagnitude > config.threshold) {
+                            ctx.fillStyle = `rgba(0, 255, 0, ${alpha})`;
+                            ctx.fillRect(x + 2, y + 2, 3, 3);
+                        }
+                    }
+                }
+                
+                ctx.shadowBlur = 0;
+                
+                // Рисуем центральный прицел
+                drawCrosshair(w, h);
+                
+                // Обновляем статистику
+                processingTime = performance.now() - startTime;
+                
+                if (debugEl) {
+                    debugEl.textContent = `Cells: ${cols}x${rows} | Time: ${processingTime.toFixed(1)}ms | Thresh: ${config.threshold}`;
+                }
+            }
+            
+            // --- Отрисовка границ (упрощённая) ---
+            function renderEdges() {
+                if (!ctx || !video || video.readyState < 2) return;
+                
+                const w = canvas.width;
+                const h = canvas.height;
+                
+                ctx.drawImage(video, 0, 0, w, h);
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const data = imageData.data;
+                
+                // Простой детектор границ
+                const output = new Uint8ClampedArray(data.length);
+                const threshold = config.threshold;
+                
+                for (let y = 2; y < h - 2; y += 2) {
+                    for (let x = 2; x < w - 2; x += 2) {
+                        const idx = (y * w + x) * 4;
+                        
+                        // Яркость текущего пикселя
+                        const center = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
+                        
+                        // Сравниваем с соседями
+                        const rightIdx = (y * w + (x + 2)) * 4;
+                        const bottomIdx = ((y + 2) * w + x) * 4;
+                        
+                        const right = (data[rightIdx] * 0.299 + data[rightIdx + 1] * 0.587 + data[rightIdx + 2] * 0.114);
+                        const bottom = (data[bottomIdx] * 0.299 + data[bottomIdx + 1] * 0.587 + data[bottomIdx + 2] * 0.114);
+                        
+                        const diff = Math.max(Math.abs(center - right), Math.abs(center - bottom));
+                        
+                        if (diff > threshold) {
+                            // Рисуем границу
+                            for (let dy = 0; dy < 2; dy++) {
+                                for (let dx = 0; dx < 2; dx++) {
+                                    const pixelIdx = ((y + dy) * w + (x + dx)) * 4;
+                                    output[pixelIdx] = 0;
+                                    output[pixelIdx + 1] = 255;
+                                    output[pixelIdx + 2] = 0;
+                                    output[pixelIdx + 3] = 255;
+                                }
+                            }
+                        } else {
+                            // Тёмный фон
+                            for (let dy = 0; dy < 2; dy++) {
+                                for (let dx = 0; dx < 2; dx++) {
+                                    const pixelIdx = ((y + dy) * w + (x + dx)) * 4;
+                                    const gray = (data[pixelIdx] * 0.299 + data[pixelIdx + 1] * 0.587 + data[pixelIdx + 2] * 0.114) * 0.2;
+                                    output[pixelIdx] = gray;
+                                    output[pixelIdx + 1] = gray;
+                                    output[pixelIdx + 2] = gray;
+                                    output[pixelIdx + 3] = 255;
                                 }
                             }
                         }
                     }
                 }
+                
+                ctx.putImageData(new ImageData(output, w, h), 0, 0);
+                drawCrosshair(w, h);
             }
             
-            ctx.stroke();
-            drawHUD();
-        }
-
-        // --- Режим точек (ключевые точки) ---
-        function detectAndDrawPoints(data, width, height) {
-            // Находим углы методом Харриса (упрощённо)
-            const corners = [];
-            const blockSize = 4;
-            const threshold = CONFIG.edgeThreshold * 255 * 2;
-            
-            // Очищаем canvas
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, width, height);
-            
-            for (let y = blockSize; y < height - blockSize; y += 2) {
-                for (let x = blockSize; x < width - blockSize; x += 2) {
-                    let gx = 0, gy = 0;
-                    
-                    // Вычисляем градиенты в окне
-                    for (let ky = -blockSize; ky <= blockSize; ky++) {
-                        for (let kx = -blockSize; kx <= blockSize; kx++) {
-                            const idx = ((y + ky) * width + (x + kx)) * 4;
-                            const gray = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
-                            
-                            if (kx < 0) gx -= gray;
-                            if (kx > 0) gx += gray;
-                            if (ky < 0) gy -= gray;
-                            if (ky > 0) gy += gray;
+            // --- Отрисовка ключевых точек ---
+            function renderPoints() {
+                if (!ctx || !video || video.readyState < 2) return;
+                
+                const w = canvas.width;
+                const h = canvas.height;
+                
+                ctx.drawImage(video, 0, 0, w, h);
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const data = imageData.data;
+                
+                // Затемняем
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, w, h);
+                
+                const step = config.pointDensity;
+                const threshold = config.threshold;
+                
+                ctx.fillStyle = '#0f0';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#0f0';
+                
+                for (let y = step; y < h - step; y += step) {
+                    for (let x = step; x < w - step; x += step) {
+                        const idx = (y * w + x) * 4;
+                        const center = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
+                        
+                        // Считаем вариацию в окрестности
+                        let variation = 0;
+                        let count = 0;
+                        
+                        for (let dy = -2; dy <= 2; dy += 2) {
+                            for (let dx = -2; dx <= 2; dx += 2) {
+                                if (dx === 0 && dy === 0) continue;
+                                const nidx = ((y + dy) * w + (x + dx)) * 4;
+                                const neighbor = (data[nidx] * 0.299 + data[nidx + 1] * 0.587 + data[nidx + 2] * 0.114);
+                                variation += Math.abs(center - neighbor);
+                                count++;
+                            }
+                        }
+                        
+                        variation /= count;
+                        
+                        if (variation > threshold) {
+                            const size = 2 + variation / threshold;
+                            ctx.globalAlpha = Math.min(1, variation / (threshold * 2));
+                            ctx.beginPath();
+                            ctx.arc(x, y, size, 0, Math.PI * 2);
+                            ctx.fill();
                         }
                     }
-                    
-                    const response = Math.abs(gx) + Math.abs(gy);
-                    
-                    if (response > threshold) {
-                        corners.push({x, y, strength: response});
-                    }
                 }
+                
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
+                drawCrosshair(w, h);
             }
             
-            // Сортировка и отрисовка только сильных углов
-            corners.sort((a, b) => b.strength - a.strength);
-            const maxPoints = 500;
-            
-            ctx.fillStyle = '#0f0';
-            ctx.shadowColor = '#0f0';
-            ctx.shadowBlur = 8;
-            
-            corners.slice(0, maxPoints).forEach((corner, i) => {
-                const alpha = 1 - (i / maxPoints) * 0.7;
-                const size = CONFIG.pointSize * (corner.strength / threshold) * 0.5;
+            // --- Прицел ---
+            function drawCrosshair(w, h) {
+                const cx = w / 2;
+                const cy = h / 2;
                 
-                ctx.globalAlpha = alpha;
-                ctx.beginPath();
-                ctx.arc(corner.x, corner.y, size, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Добавляем перекрестие
-                ctx.strokeStyle = `rgba(0, 255, 0, ${alpha * 0.5})`;
+                ctx.strokeStyle = '#0f0';
                 ctx.lineWidth = 1;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = '#0f0';
+                
                 ctx.beginPath();
-                ctx.moveTo(corner.x - size * 2, corner.y);
-                ctx.lineTo(corner.x + size * 2, corner.y);
-                ctx.moveTo(corner.x, corner.y - size * 2);
-                ctx.lineTo(corner.x, corner.y + size * 2);
+                ctx.moveTo(cx - 30, cy);
+                ctx.lineTo(cx - 10, cy);
+                ctx.moveTo(cx + 10, cy);
+                ctx.lineTo(cx + 30, cy);
+                ctx.moveTo(cx, cy - 30);
+                ctx.lineTo(cx, cy - 10);
+                ctx.moveTo(cx, cy + 10);
+                ctx.lineTo(cx, cy + 30);
                 ctx.stroke();
-            });
+                
+                ctx.shadowBlur = 0;
+            }
             
-            ctx.shadowBlur = 0;
-            ctx.globalAlpha = 1;
-            drawHUD();
-        }
-
-        // --- Wireframe сетка (анализ структуры) ---
-        function drawWireframeGrid(data, width, height) {
-            const gridSize = CONFIG.gridSize;
-            const cols = Math.ceil(width / gridSize);
-            const rows = Math.ceil(height / gridSize);
-            
-            // Очищаем фон
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, width, height);
-            
-            // Создаём массив градиентов для каждой ячейки
-            const gradients = [];
-            
-            for (let row = 0; row < rows; row++) {
-                for (let col = 0; col < cols; col++) {
-                    const x = col * gridSize;
-                    const y = row * gridSize;
-                    const w = Math.min(gridSize, width - x);
-                    const h = Math.min(gridSize, height - y);
+            // --- Главный цикл рендеринга ---
+            function renderLoop() {
+                if (!isRunning) return;
+                
+                // Пропускаем кадры для производительности
+                frameSkip++;
+                if (frameSkip > MAX_FRAME_SKIP) {
+                    frameSkip = 0;
                     
-                    // Вычисляем средний градиент в ячейке
-                    let sumGx = 0, sumGy = 0, count = 0;
-                    
-                    for (let py = y; py < y + h; py += 2) {
-                        for (let px = x; px < x + w; px += 2) {
-                            const idx = (py * width + px) * 4;
-                            const center = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
-                            
-                            if (px > 0 && px < width - 1) {
-                                const leftIdx = (py * width + (px - 1)) * 4;
-                                const rightIdx = (py * width + (px + 1)) * 4;
-                                const left = (data[leftIdx] * 0.299 + data[leftIdx + 1] * 0.587 + data[leftIdx + 2] * 0.114);
-                                const right = (data[rightIdx] * 0.299 + data[rightIdx + 1] * 0.587 + data[rightIdx + 2] * 0.114);
-                                sumGx += right - left;
-                            }
-                            
-                            if (py > 0 && py < height - 1) {
-                                const topIdx = ((py - 1) * width + px) * 4;
-                                const bottomIdx = ((py + 1) * width + px) * 4;
-                                const top = (data[topIdx] * 0.299 + data[topIdx + 1] * 0.587 + data[topIdx + 2] * 0.114);
-                                const bottom = (data[bottomIdx] * 0.299 + data[bottomIdx + 1] * 0.587 + data[bottomIdx + 2] * 0.114);
-                                sumGy += bottom - top;
-                            }
-                            
-                            count++;
+                    try {
+                        switch(currentMode) {
+                            case MODES.WIREFRAME:
+                                renderWireframe();
+                                break;
+                            case MODES.EDGES:
+                                renderEdges();
+                                break;
+                            case MODES.POINTS:
+                                renderPoints();
+                                break;
+                            case MODES.CAMERA:
+                            default:
+                                if (ctx && video && video.readyState >= 2) {
+                                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                    drawCrosshair(canvas.width, canvas.height);
+                                }
+                                break;
                         }
-                    }
-                    
-                    if (count > 0) {
-                        gradients.push({
-                            x, y, w, h,
-                            gx: sumGx / count,
-                            gy: sumGy / count,
-                            magnitude: Math.sqrt(sumGx * sumGx + sumGy * sumGy) / count
-                        });
+                        
+                        // Обновление FPS
+                        frameCount++;
+                        const now = performance.now();
+                        if (now - lastFpsUpdate >= 1000) {
+                            fps = frameCount;
+                            frameCount = 0;
+                            lastFpsUpdate = now;
+                            
+                            if (performanceEl) {
+                                performanceEl.textContent = `FPS: ${fps} | ${processingTime.toFixed(0)}ms`;
+                            }
+                        }
+                        
+                    } catch (e) {
+                        log('Render error: ' + e.message, true);
                     }
                 }
+                
+                animationFrame = requestAnimationFrame(renderLoop);
             }
             
-            // Рисуем сетку на основе градиентов
-            ctx.strokeStyle = '#0f0';
-            ctx.lineWidth = 1.5;
-            ctx.shadowColor = '#0f0';
-            ctx.shadowBlur = 5;
-            
-            gradients.forEach(g => {
-                const intensity = Math.min(1, g.magnitude / 50);
-                const alpha = intensity * 0.8;
+            // --- Настройка управления ---
+            function setupControls() {
+                // Кнопки режимов
+                document.getElementById('btnCamera').addEventListener('click', () => {
+                    currentMode = MODES.CAMERA;
+                    modeIndicator.textContent = '◈ CAMERA FEED';
+                    updateButtonState('btnCamera');
+                });
                 
-                // Рисуем рамку ячейки
-                ctx.strokeStyle = `rgba(0, 255, 0, ${alpha})`;
-                ctx.strokeRect(g.x, g.y, g.w, g.h);
+                document.getElementById('btnWireframe').addEventListener('click', () => {
+                    currentMode = MODES.WIREFRAME;
+                    modeIndicator.textContent = '◈ WIREFRAME ANALYSIS';
+                    updateButtonState('btnWireframe');
+                });
                 
-                // Рисуем вектор градиента
-                if (g.magnitude > 20) {
-                    const centerX = g.x + g.w / 2;
-                    const centerY = g.y + g.h / 2;
-                    const len = Math.min(g.w, g.h) * 0.4 * intensity;
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(centerX, centerY);
-                    ctx.lineTo(centerX + g.gx * len, centerY + g.gy * len);
-                    ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`;
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                    
-                    // Стрелка
-                    const angle = Math.atan2(g.gy, g.gx);
-                    const arrowSize = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(centerX + g.gx * len, centerY + g.gy * len);
-                    ctx.lineTo(
-                        centerX + g.gx * len - arrowSize * Math.cos(angle - 0.8),
-                        centerY + g.gy * len - arrowSize * Math.sin(angle - 0.8)
-                    );
-                    ctx.lineTo(
-                        centerX + g.gx * len - arrowSize * Math.cos(angle + 0.8),
-                        centerY + g.gy * len - arrowSize * Math.sin(angle + 0.8)
-                    );
-                    ctx.closePath();
-                    ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;
-                    ctx.fill();
-                }
-            });
-            
-            ctx.shadowBlur = 0;
-            drawHUD();
-        }
-
-        // --- HUD элементы ---
-        function drawHUD() {
-            // Рамка прицела
-            ctx.strokeStyle = '#0f0';
-            ctx.lineWidth = 1;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#0f0';
-            
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-            const size = 50;
-            
-            ctx.beginPath();
-            ctx.moveTo(cx - size, cy);
-            ctx.lineTo(cx - 20, cy);
-            ctx.moveTo(cx + 20, cy);
-            ctx.lineTo(cx + size, cy);
-            ctx.moveTo(cx, cy - size);
-            ctx.lineTo(cx, cy - 20);
-            ctx.moveTo(cx, cy + 20);
-            ctx.lineTo(cx, cy + size);
-            ctx.stroke();
-            
-            ctx.shadowBlur = 0;
-            
-            // Информация о режиме
-            ctx.font = '12px "Courier New", monospace';
-            ctx.fillStyle = '#0f0';
-            ctx.textAlign = 'left';
-            ctx.fillText(`MODE: ${currentMode.toUpperCase()}`, 20, 40);
-            ctx.fillText(`THRESH: ${CONFIG.edgeThreshold.toFixed(2)}`, 20, 60);
-            ctx.fillText(`RES: ${canvas.width}x${canvas.height}`, 20, 80);
-        }
-
-        // --- FPS счётчик ---
-        function updateFPS() {
-            frameCount++;
-            const now = performance.now();
-            const delta = now - lastTime;
-            
-            if (delta >= 1000) {
-                fps = frameCount;
-                frameCount = 0;
-                lastTime = now;
-                fpsEl.textContent = `FPS: ${fps}`;
-            }
-        }
-
-        // --- Управление ---
-        function setupControls() {
-            document.getElementById('btnOriginal').addEventListener('click', () => {
-                currentMode = 'original';
-                updateButtonState('btnOriginal');
-                statusEl.textContent = 'CV ACTIVE • MODE: ORIGINAL';
-            });
-            
-            document.getElementById('btnEdges').addEventListener('click', () => {
-                currentMode = 'edges';
-                updateButtonState('btnEdges');
-                statusEl.textContent = 'CV ACTIVE • MODE: SOBEL EDGE DETECTION';
-            });
-            
-            document.getElementById('btnLines').addEventListener('click', () => {
-                currentMode = 'lines';
-                updateButtonState('btnLines');
-                statusEl.textContent = 'CV ACTIVE • MODE: LINE DETECTION';
-            });
-            
-            document.getElementById('btnPoints').addEventListener('click', () => {
-                currentMode = 'points';
-                updateButtonState('btnPoints');
-                statusEl.textContent = 'CV ACTIVE • MODE: CORNER DETECTION';
-            });
-            
-            document.getElementById('btnWireframe').addEventListener('click', () => {
-                currentMode = 'wireframe';
-                updateButtonState('btnWireframe');
-                statusEl.textContent = 'CV ACTIVE • MODE: WIREFRAME ANALYSIS';
-            });
-            
-            document.getElementById('btnThresholdUp').addEventListener('click', () => {
-                CONFIG.edgeThreshold = Math.min(0.5, CONFIG.edgeThreshold + 0.02);
-            });
-            
-            document.getElementById('btnThresholdDown').addEventListener('click', () => {
-                CONFIG.edgeThreshold = Math.max(0.02, CONFIG.edgeThreshold - 0.02);
-            });
-            
-            function updateButtonState(activeId) {
-                ['btnOriginal', 'btnEdges', 'btnLines', 'btnPoints', 'btnWireframe'].forEach(id => {
-                    const btn = document.getElementById(id);
-                    if (id === activeId) {
-                        btn.classList.add('active');
+                document.getElementById('btnEdges').addEventListener('click', () => {
+                    currentMode = MODES.EDGES;
+                    modeIndicator.textContent = '◈ EDGE DETECTION';
+                    updateButtonState('btnEdges');
+                });
+                
+                document.getElementById('btnPoints').addEventListener('click', () => {
+                    currentMode = MODES.POINTS;
+                    modeIndicator.textContent = '◈ FEATURE POINTS';
+                    updateButtonState('btnPoints');
+                });
+                
+                document.getElementById('btnThreshold').addEventListener('click', () => {
+                    // Циклическое переключение чувствительности
+                    if (config.threshold === 30) {
+                        config.threshold = 50;
+                    } else if (config.threshold === 50) {
+                        config.threshold = 20;
                     } else {
-                        btn.classList.remove('active');
+                        config.threshold = 30;
                     }
+                    log(`Threshold: ${config.threshold}`);
+                });
+                
+                // Слайдер размера ячейки
+                cellSizeSlider.addEventListener('input', (e) => {
+                    config.cellSize = parseInt(e.target.value);
+                    cellSizeValue.textContent = config.cellSize;
+                });
+                
+                function updateButtonState(activeId) {
+                    ['btnCamera', 'btnWireframe', 'btnEdges', 'btnPoints'].forEach(id => {
+                        const btn = document.getElementById(id);
+                        if (btn) {
+                            if (id === activeId) {
+                                btn.classList.add('active');
+                            } else {
+                                btn.classList.remove('active');
+                            }
+                        }
+                    });
+                }
+                
+                // Обработчик изменения размера
+                window.addEventListener('resize', () => {
+                    resizeCanvas();
                 });
             }
-        }
-
-        // --- Очистка при уходе со страницы ---
-        window.addEventListener('beforeunload', () => {
-            if (animationId) cancelAnimationFrame(animationId);
-            if (stream) stream.getTracks().forEach(track => track.stop());
-        });
-
-        // --- Запуск ---
-        init();
+            
+            // --- Запуск ---
+            async function start() {
+                try {
+                    log('Starting CV system...');
+                    
+                    // Создаём canvas
+                    if (!createCanvas()) {
+                        throw new Error('Canvas creation failed');
+                    }
+                    
+                    // Инициализируем камеру
+                    if (!await initCamera()) {
+                        throw new Error('Camera initialization failed');
+                    }
+                    
+                    // Настройка управления
+                    setupControls();
+                    
+                    // Скрываем загрузку
+                    loadingEl.style.display = 'none';
+                    
+                    // Запускаем рендеринг
+                    isRunning = true;
+                    renderLoop();
+                    
+                    log('System ready');
+                    
+                } catch (error) {
+                    log('Startup failed: ' + error.message, true);
+                    loadingEl.innerHTML = `ERROR<br><small>${error.message}</small>`;
+                }
+            }
+            
+            // --- Очистка ---
+            function cleanup() {
+                isRunning = false;
+                
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                    animationFrame = null;
+                }
+                
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+                
+                if (video) {
+                    video.srcObject = null;
+                    video = null;
+                }
+                
+                log('Cleanup complete');
+            }
+            
+            // Регистрируем очистку при уходе
+            window.addEventListener('beforeunload', cleanup);
+            window.addEventListener('pagehide', cleanup);
+            
+            // Запускаем
+            start();
+            
+        })();
     </script>
 </body>
 </html>

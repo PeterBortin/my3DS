@@ -1,121 +1,999 @@
 <!DOCTYPE html>
+
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GREEN VISION FIXED</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        body { margin: 0; background: #000; overflow: hidden; }
-        #btn-start {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 20px; border: 2px solid #0f0; background: #000; color: #0f0;
-            font-family: monospace; z-index: 100; cursor: pointer; text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        canvas { display: block; width: 100vw; height: 100vh; }
-        video { display: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VISION SUITE</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+–green: #00ff41;
+–dim-green: #003b00;
+–thermal-hot: #ff4500;
+–thermal-cold: #0044ff;
+–bg: #000;
+}
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: #000;
+overflow: hidden;
+width: 100vw;
+height: 100vh;
+font-family: ‘Share Tech Mono’, monospace;
+color: var(–green);
+user-select: none;
+-webkit-user-select: none;
+}
+
+/* ── START SCREEN ── */
+#start-screen {
+position: fixed; inset: 0;
+background: #000;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+z-index: 200;
+gap: 24px;
+}
+
+.logo {
+font-family: ‘Orbitron’, monospace;
+font-weight: 900;
+font-size: clamp(28px, 8vw, 64px);
+letter-spacing: 0.15em;
+color: var(–green);
+text-shadow: 0 0 30px var(–green), 0 0 60px #00ff4155;
+animation: flicker 4s infinite;
+}
+
+.logo span { color: #fff; }
+
+.tagline {
+font-size: 11px;
+letter-spacing: 4px;
+color: #555;
+text-transform: uppercase;
+}
+
+@keyframes flicker {
+0%, 95%, 100% { opacity: 1; }
+96% { opacity: 0.6; }
+97% { opacity: 1; }
+98% { opacity: 0.4; }
+99% { opacity: 0.9; }
+}
+
+#btn-start {
+margin-top: 16px;
+padding: 14px 40px;
+background: transparent;
+border: 1px solid var(–green);
+color: var(–green);
+font-family: ‘Share Tech Mono’, monospace;
+font-size: 13px;
+letter-spacing: 4px;
+text-transform: uppercase;
+cursor: pointer;
+position: relative;
+overflow: hidden;
+transition: color 0.3s;
+}
+
+#btn-start::before {
+content: ‘’;
+position: absolute;
+inset: 0;
+background: var(–green);
+transform: scaleX(0);
+transform-origin: left;
+transition: transform 0.3s ease;
+z-index: -1;
+}
+
+#btn-start:hover::before { transform: scaleX(1); }
+#btn-start:hover { color: #000; }
+
+.scan-line-anim {
+position: absolute;
+inset: 0;
+background: repeating-linear-gradient(
+0deg,
+transparent,
+transparent 2px,
+rgba(0,255,65,0.03) 2px,
+rgba(0,255,65,0.03) 4px
+);
+pointer-events: none;
+}
+
+/* ── APP ── */
+#app {
+display: none;
+position: fixed;
+inset: 0;
+}
+
+#app.active { display: block; }
+
+video { display: none; }
+
+#three-canvas {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+}
+
+/* Body-pix overlay canvas */
+#neural-canvas {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+display: none;
+pointer-events: none;
+}
+
+/* ── HUD ── */
+.hud {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 10;
+}
+
+/* Scan lines over everything */
+.scanlines {
+position: absolute;
+inset: 0;
+background: repeating-linear-gradient(
+0deg,
+transparent,
+transparent 3px,
+rgba(0,0,0,0.15) 3px,
+rgba(0,0,0,0.15) 4px
+);
+pointer-events: none;
+}
+
+/* Corner brackets */
+.corner {
+position: absolute;
+width: 30px;
+height: 30px;
+border-color: var(–green);
+border-style: solid;
+opacity: 0.7;
+}
+.corner.tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
+.corner.tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
+.corner.bl { bottom: 80px; left: 16px; border-width: 0 0 2px 2px; }
+.corner.br { bottom: 80px; right: 16px; border-width: 0 2px 2px 0; }
+
+/* Filter name */
+#filter-name {
+position: absolute;
+top: 24px;
+left: 50%;
+transform: translateX(-50%);
+font-family: ‘Orbitron’, monospace;
+font-size: 11px;
+letter-spacing: 5px;
+color: var(–green);
+text-shadow: 0 0 10px var(–green);
+text-align: center;
+white-space: nowrap;
+transition: opacity 0.3s;
+}
+
+/* Status readouts */
+.readout {
+position: absolute;
+font-size: 9px;
+letter-spacing: 2px;
+color: #00ff4188;
+line-height: 1.6;
+}
+.readout.top-left { top: 48px; left: 20px; }
+.readout.top-right { top: 48px; right: 20px; text-align: right; }
+.readout.bottom-left { bottom: 88px; left: 20px; }
+
+#fps-counter { color: var(–green); }
+
+/* Neural status badge */
+#neural-status {
+position: absolute;
+top: 48px;
+right: 20px;
+font-size: 8px;
+letter-spacing: 2px;
+display: flex;
+align-items: center;
+gap: 6px;
+color: #00ff4155;
+}
+
+#neural-dot {
+width: 6px; height: 6px;
+border-radius: 50%;
+background: #333;
+transition: background 0.3s, box-shadow 0.3s;
+}
+
+#neural-dot.loading { background: #ff8c00; box-shadow: 0 0 8px #ff8c00; animation: pulse 1s infinite; }
+#neural-dot.ready   { background: var(–green); box-shadow: 0 0 8px var(–green); }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── FILTER BAR ── */
+#filter-bar {
+position: absolute;
+bottom: 0;
+left: 0;
+right: 0;
+height: 72px;
+background: linear-gradient(transparent, rgba(0,0,0,0.92));
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+padding: 0 12px;
+z-index: 20;
+pointer-events: all;
+}
+
+.filter-btn {
+flex: 1;
+max-width: 64px;
+height: 44px;
+background: rgba(0,255,65,0.05);
+border: 1px solid rgba(0,255,65,0.2);
+color: rgba(0,255,65,0.5);
+font-family: ‘Share Tech Mono’, monospace;
+font-size: 7px;
+letter-spacing: 1px;
+text-transform: uppercase;
+text-align: center;
+cursor: pointer;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 3px;
+transition: all 0.2s;
+-webkit-tap-highlight-color: transparent;
+padding: 0 4px;
+line-height: 1.2;
+}
+
+.filter-btn .icon { font-size: 16px; line-height: 1; }
+
+.filter-btn.active {
+background: rgba(0,255,65,0.15);
+border-color: var(–green);
+color: var(–green);
+box-shadow: 0 0 12px rgba(0,255,65,0.3), inset 0 0 8px rgba(0,255,65,0.05);
+}
+
+.filter-btn:active {
+transform: scale(0.95);
+background: rgba(0,255,65,0.25);
+}
+
+/* Neural label indicator */
+.filter-btn[data-filter=“neural”] .icon::after {
+content: ’ ◈’;
+font-size: 8px;
+}
+
+/* ── GLITCH OVERLAY ── */
+#glitch-overlay {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 5;
+display: none;
+}
+
+/* ── MATRIX CANVAS ── */
+#matrix-canvas {
+position: absolute;
+inset: 0;
+display: none;
+pointer-events: none;
+}
+
+/* Loading spinner */
+#loading-bar {
+position: absolute;
+bottom: 80px;
+left: 50%;
+transform: translateX(-50%);
+width: 200px;
+height: 2px;
+background: #111;
+z-index: 30;
+display: none;
+}
+#loading-progress {
+height: 100%;
+background: var(–green);
+width: 0%;
+transition: width 0.3s;
+box-shadow: 0 0 8px var(–green);
+}
+</style>
+
 </head>
 <body>
 
-    <button id="btn-start">ACTIVATE SYSTEM</button>
-    <video id="v" playsinline muted></video>
+<!-- START SCREEN -->
+
+<div id="start-screen">
+  <div class="scan-line-anim"></div>
+  <div class="logo">VISION <span>SUITE</span></div>
+  <div class="tagline">6 cinematic filters · neural body detection</div>
+  <button id="btn-start">INITIALIZE SYSTEM</button>
+</div>
+
+<!-- APP -->
+
+<div id="app">
+  <video id="v" playsinline muted autoplay></video>
+  <canvas id="three-canvas"></canvas>
+  <canvas id="neural-canvas"></canvas>
+  <canvas id="matrix-canvas"></canvas>
+
+  <!-- HUD -->
+
+  <div class="hud">
+    <div class="scanlines"></div>
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+```
+<div id="filter-name">GREEN VISION</div>
+
+<div class="readout top-left">
+  <div id="fps-counter">FPS: --</div>
+  <div id="res-info">RES: --</div>
+</div>
+
+<div id="neural-status">
+  <div id="neural-dot"></div>
+  <span id="neural-label">NEURAL: OFFLINE</span>
+</div>
+
+<div class="readout bottom-left">
+  <div id="mode-extra"></div>
+</div>
+```
+
+  </div>
+
+  <div id="loading-bar"><div id="loading-progress"></div></div>
+
+  <!-- FILTER BAR -->
+
+  <div id="filter-bar">
+    <button class="filter-btn active" data-filter="green">
+      <span class="icon">◈</span>GREEN
+    </button>
+    <button class="filter-btn" data-filter="thermal">
+      <span class="icon">🌡</span>THERMAL
+    </button>
+    <button class="filter-btn" data-filter="glitch">
+      <span class="icon">⚡</span>GLITCH
+    </button>
+    <button class="filter-btn" data-filter="neural">
+      <span class="icon">🧠</span>NEURAL
+    </button>
+    <button class="filter-btn" data-filter="matrix">
+      <span class="icon">⌨</span>MATRIX
+    </button>
+    <button class="filter-btn" data-filter="noir">
+      <span class="icon">◐</span>NOIR
+    </button>
+  </div>
+</div>
 
 <script>
-let scene, camera, renderer, texture;
-const video = document.getElementById('v');
+'use strict';
 
-async function init() {
-    document.getElementById('btn-start').style.display = 'none';
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const state = {
+  filter: 'green',
+  fps: 0,
+  frameCount: 0,
+  lastFpsTime: 0,
+  bodyPixModel: null,
+  bodyPixLoading: false,
+  bodyPixReady: false,
+  matrixCtx: null,
+  matrixAnimId: null,
+  matrixColumns: [],
+  glitchAnimId: null,
+  neuralAnimId: null,
+};
 
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment" }, 
-            audio: false 
-        });
-        video.srcObject = stream;
-        await video.play();
-        setupScene();
-    } catch (e) {
-        alert('Ошибка доступа к камере. Убедитесь, что используете HTTPS.');
-    }
-}
+const video    = document.getElementById('v');
+const threeCanvas  = document.getElementById('three-canvas');
+const neuralCanvas = document.getElementById('neural-canvas');
+const matrixCanvas = document.getElementById('matrix-canvas');
 
-function setupScene() {
-    scene = new THREE.Scene();
-    camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    renderer = new THREE.WebGLRenderer({ antialias: false });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+// ═══════════════════════════════════════════
+//  THREE.JS SETUP
+// ═══════════════════════════════════════════
+let scene, camera, renderer, videoTexture, shaderMesh;
+let shaderMaterials = {};
+let currentMaterial = null;
 
-    texture = new THREE.VideoTexture(video);
-    
-    const material = new THREE.ShaderMaterial({
-        uniforms: {
-            t: { value: texture },
-            res: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
-        },
-        vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                // ИСПРАВЛЕНИЕ: Инвертируем Y, чтобы картинка не была вверх ногами
-                // И оставляем X как есть (uv.x). 
-                vUv = vec2(uv.x, uv.y); 
-                gl_Position = vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            precision mediump float;
-            uniform sampler2D t;
-            uniform vec2 res;
-            varying vec2 vUv;
-            void main() {
-                vec3 off = vec3(1.0/res.x, 1.0/res.y, 0.0);
-                
-                // Берем яркость соседних пикселей
-                float s11 = texture2D(t, vUv - off.xy).r;
-                float s12 = texture2D(t, vUv - off.zy).r;
-                float s13 = texture2D(t, vUv - off.zy + off.xz).r;
-                float s21 = texture2D(t, vUv - off.xz).r;
-                float s23 = texture2D(t, vUv + off.xz).r;
-                float s31 = texture2D(t, vUv + off.zy - off.xz).r;
-                float s32 = texture2D(t, vUv + off.zy).r;
-                float s33 = texture2D(t, vUv + off.xy).r;
-                
-                // Оператор Собеля для выделения граней
-                float x = s13 + 2.0*s23 + s33 - (s11 + 2.0*s21 + s31);
-                float y = s31 + 2.0*s32 + s33 - (s11 + 2.0*s12 + s13);
-                float edge = sqrt(x*x + y*y);
-                
-                // Вывод: ярко-зеленые контуры на черном фоне
-                gl_FragColor = vec4(0.0, edge * 4.0, 0.0, 1.0);
-            }
-        `
+const SHADERS = {
+
+  // 1. GREEN VISION – Sobel edges
+  green: {
+    vert: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`,
+    frag: `
+      precision mediump float;
+      uniform sampler2D t; uniform vec2 res; varying vec2 vUv;
+      void main(){
+        vec2 p=vec2(1.0/res.x,1.0/res.y);
+        float s11=texture2D(t,vUv+vec2(-p.x,-p.y)).r;
+        float s12=texture2D(t,vUv+vec2( 0.0,-p.y)).r;
+        float s13=texture2D(t,vUv+vec2( p.x,-p.y)).r;
+        float s21=texture2D(t,vUv+vec2(-p.x, 0.0)).r;
+        float s23=texture2D(t,vUv+vec2( p.x, 0.0)).r;
+        float s31=texture2D(t,vUv+vec2(-p.x, p.y)).r;
+        float s32=texture2D(t,vUv+vec2( 0.0, p.y)).r;
+        float s33=texture2D(t,vUv+vec2( p.x, p.y)).r;
+        float x=s13+2.0*s23+s33-(s11+2.0*s21+s31);
+        float y=s31+2.0*s32+s33-(s11+2.0*s12+s13);
+        float e=sqrt(x*x+y*y);
+        // subtle scanline
+        float scan=sin(vUv.y*res.y*3.14159)*0.04+0.96;
+        gl_FragColor=vec4(0.0,e*4.5*scan,e*0.4*scan,1.0);
+      }
+    `
+  },
+
+  // 2. THERMAL – false color heatmap
+  thermal: {
+    vert: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`,
+    frag: `
+      precision mediump float;
+      uniform sampler2D t; uniform float time; varying vec2 vUv;
+      vec3 thermal(float v){
+        v=clamp(v,0.0,1.0);
+        // blue->cyan->green->yellow->orange->red->white
+        vec3 c;
+        if(v<0.25)      c=mix(vec3(0.0,0.0,0.5),vec3(0.0,0.8,0.8),v/0.25);
+        else if(v<0.5)  c=mix(vec3(0.0,0.8,0.8),vec3(0.0,1.0,0.0),(v-0.25)/0.25);
+        else if(v<0.75) c=mix(vec3(0.0,1.0,0.0),vec3(1.0,0.5,0.0),(v-0.5)/0.25);
+        else            c=mix(vec3(1.0,0.5,0.0),vec3(1.0,1.0,1.0),(v-0.75)/0.25);
+        return c;
+      }
+      void main(){
+        vec3 col=texture2D(t,vUv).rgb;
+        float lum=dot(col,vec3(0.299,0.587,0.114));
+        // slight noise for realism
+        float n=fract(sin(dot(vUv+time*0.001,vec2(127.1,311.7)))*43758.5);
+        lum=lum+n*0.03;
+        vec3 tc=thermal(lum);
+        gl_FragColor=vec4(tc,1.0);
+      }
+    `
+  },
+
+  // 3. GLITCH – chromatic aberration + wave distortion
+  glitch: {
+    vert: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`,
+    frag: `
+      precision mediump float;
+      uniform sampler2D t; uniform float time; uniform vec2 res; varying vec2 vUv;
+      float rand(vec2 co){ return fract(sin(dot(co,vec2(12.9898,78.233)))*43758.5453); }
+      void main(){
+        float t2=time*0.001;
+        // horizontal glitch bands
+        float band=floor(vUv.y*20.0);
+        float glitchAmt=rand(vec2(band,floor(t2*10.0)))*0.04;
+        glitchAmt*=step(0.85, rand(vec2(band*0.1,t2)));
+        // vertical wave
+        float wave=sin(vUv.y*80.0+t2*5.0)*0.003;
+        vec2 uv=vUv+vec2(glitchAmt+wave,0.0);
+        // RGB split
+        float split=0.008+glitchAmt*2.0;
+        float r=texture2D(t,uv+vec2(split,0.0)).r;
+        float g=texture2D(t,uv).g;
+        float b=texture2D(t,uv-vec2(split,0.0)).b;
+        // scanline
+        float scan=0.85+0.15*sin(vUv.y*res.y*2.0);
+        // vignette
+        vec2 vc=vUv-0.5;
+        float vign=1.0-dot(vc,vc)*2.5;
+        vign=clamp(vign,0.0,1.0);
+        gl_FragColor=vec4(r*scan*vign, g*scan*vign, b*scan*vign, 1.0);
+      }
+    `
+  },
+
+  // 4. NEURAL – plain pass-through (overlay done in 2D canvas)
+  neural: {
+    vert: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`,
+    frag: `
+      precision mediump float;
+      uniform sampler2D t; varying vec2 vUv;
+      void main(){
+        vec3 col=texture2D(t,vUv).rgb;
+        // desaturate bg slightly
+        float lum=dot(col,vec3(0.299,0.587,0.114));
+        col=mix(vec3(lum),col,0.3);
+        gl_FragColor=vec4(col,1.0);
+      }
+    `
+  },
+
+  // 5. MATRIX – plain pass-through (canvas ASCII overlay)
+  matrix: {
+    vert: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`,
+    frag: `
+      precision mediump float;
+      uniform sampler2D t; varying vec2 vUv;
+      void main(){
+        vec3 col=texture2D(t,vUv).rgb;
+        float lum=dot(col,vec3(0.299,0.587,0.114));
+        gl_FragColor=vec4(0.0,lum*0.15,0.0,1.0);
+      }
+    `
+  },
+
+  // 6. NOIR PULSE – high contrast B&W + vignette + grain
+  noir: {
+    vert: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`,
+    frag: `
+      precision mediump float;
+      uniform sampler2D t; uniform float time; uniform vec2 res; varying vec2 vUv;
+      float rand(vec2 co){ return fract(sin(dot(co,vec2(12.9898,78.233)))*43758.5453); }
+      void main(){
+        vec3 col=texture2D(t,vUv).rgb;
+        float lum=dot(col,vec3(0.299,0.587,0.114));
+        // high contrast S-curve
+        lum=smoothstep(0.15,0.85,lum);
+        lum=pow(lum,0.75);
+        // grain
+        float grain=rand(vUv+fract(time*0.001))*0.08-0.04;
+        lum=clamp(lum+grain,0.0,1.0);
+        // vignette
+        vec2 vc=(vUv-0.5)*2.0;
+        float vign=1.0-dot(vc,vc)*0.55;
+        vign=clamp(vign,0.0,1.0);
+        // scanline
+        float scan=0.93+0.07*sin(vUv.y*res.y*2.0+time*0.002);
+        float final=lum*vign*scan;
+        gl_FragColor=vec4(final,final,final,1.0);
+      }
+    `
+  }
+};
+
+const FILTER_NAMES = {
+  green:   'GREEN VISION',
+  thermal: 'THERMAL SCAN',
+  glitch:  'SIGNAL GLITCH',
+  neural:  'NEURAL BODY',
+  matrix:  'MATRIX RAIN',
+  noir:    'NOIR PULSE',
+};
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+document.getElementById('btn-start').addEventListener('click', async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
     });
-
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
-    scene.add(mesh);
-
-    render();
-}
-
-function render() {
-    renderer.render(scene, camera);
-    requestAnimationFrame(render);
-}
-
-window.addEventListener('resize', () => {
-    if(renderer) {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        // Обновляем разрешение в шейдере при повороте экрана
-        if(scene.children[0]) {
-            scene.children[0].material.uniforms.res.value.set(window.innerWidth, window.innerHeight);
-        }
-    }
+    video.srcObject = stream;
+    await video.play();
+    launchApp();
+  } catch(e) {
+    alert('Camera access denied. Please use HTTPS and allow camera.');
+  }
 });
 
-document.getElementById('btn-start').addEventListener('click', init);
+function launchApp() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+
+  // Update res
+  const vw = video.videoWidth || window.innerWidth;
+  const vh = video.videoHeight || window.innerHeight;
+  document.getElementById('res-info').textContent = `RES: ${vw}×${vh}`;
+
+  setupThree();
+  setupMatrix();
+  setupFilterBar();
+
+  // Start loading BodyPix in background
+  loadBodyPix();
+
+  // FPS loop
+  setInterval(updateFPS, 500);
+}
+
+// ═══════════════════════════════════════════
+//  THREE.JS
+// ═══════════════════════════════════════════
+function setupThree() {
+  scene = new THREE.Scene();
+  camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+  renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, antialias: false });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  videoTexture = new THREE.VideoTexture(video);
+
+  const geom = new THREE.PlaneGeometry(2, 2);
+  const resVec = new THREE.Vector2(window.innerWidth, window.innerHeight);
+
+  // Build all materials once
+  for (const [key, sh] of Object.entries(SHADERS)) {
+    shaderMaterials[key] = new THREE.ShaderMaterial({
+      uniforms: {
+        t:    { value: videoTexture },
+        res:  { value: resVec.clone() },
+        time: { value: 0 }
+      },
+      vertexShader: sh.vert,
+      fragmentShader: sh.frag
+    });
+  }
+
+  shaderMesh = new THREE.Mesh(geom, shaderMaterials['green']);
+  currentMaterial = shaderMaterials['green'];
+  scene.add(shaderMesh);
+
+  renderThree();
+}
+
+let lastTime = 0;
+function renderThree(ts = 0) {
+  requestAnimationFrame(renderThree);
+
+  const dt = ts - lastTime;
+  lastTime = ts;
+
+  // Tick time uniforms
+  for (const mat of Object.values(shaderMaterials)) {
+    mat.uniforms.time.value = ts;
+  }
+
+  if (state.filter !== 'matrix') {
+    renderer.render(scene, camera);
+  }
+
+  state.frameCount++;
+}
+
+// ═══════════════════════════════════════════
+//  MATRIX RAIN
+// ═══════════════════════════════════════════
+const MATRIX_CHARS = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ░▒▓';
+
+function setupMatrix() {
+  const ctx = matrixCanvas.getContext('2d');
+  state.matrixCtx = ctx;
+  resizeMatrix();
+}
+
+function resizeMatrix() {
+  matrixCanvas.width  = window.innerWidth;
+  matrixCanvas.height = window.innerHeight;
+  const cols = Math.floor(window.innerWidth / 14);
+  state.matrixColumns = Array.from({ length: cols }, () =>
+    Math.floor(Math.random() * -window.innerHeight / 14)
+  );
+}
+
+function drawMatrix() {
+  if (state.filter !== 'matrix') return;
+
+  // Draw dim camera frame to background first
+  const ctx = state.matrixCtx;
+  const W = matrixCanvas.width;
+  const H = matrixCanvas.height;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.font = '13px Share Tech Mono, monospace';
+
+  state.matrixColumns.forEach((y, i) => {
+    const char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+    const x = i * 14;
+
+    // Head = bright white
+    ctx.fillStyle = '#aaffaa';
+    ctx.fillText(char, x, y * 14);
+
+    // Reset
+    if (y * 14 > H && Math.random() > 0.975) {
+      state.matrixColumns[i] = 0;
+    }
+    state.matrixColumns[i]++;
+  });
+
+  state.matrixAnimId = requestAnimationFrame(drawMatrix);
+}
+
+// ═══════════════════════════════════════════
+//  BODYPIX NEURAL
+// ═══════════════════════════════════════════
+async function loadBodyPix() {
+  if (state.bodyPixLoading || state.bodyPixReady) return;
+  state.bodyPixLoading = true;
+
+  const dot   = document.getElementById('neural-dot');
+  const label = document.getElementById('neural-label');
+  dot.className = 'loading';
+  label.textContent = 'NEURAL: LOADING';
+
+  const bar = document.getElementById('loading-bar');
+  const prog = document.getElementById('loading-progress');
+  bar.style.display = 'block';
+  prog.style.width = '30%';
+
+  try {
+    state.bodyPixModel = await bodyPix.load({
+      architecture: 'MobileNetV1',
+      outputStride: 16,
+      multiplier: 0.75,
+      quantBytes: 2
+    });
+    prog.style.width = '100%';
+    setTimeout(() => { bar.style.display = 'none'; }, 600);
+
+    state.bodyPixReady = true;
+    state.bodyPixLoading = false;
+    dot.className = 'ready';
+    label.textContent = 'NEURAL: READY';
+  } catch(e) {
+    dot.className = '';
+    label.textContent = 'NEURAL: FAILED';
+    bar.style.display = 'none';
+    console.warn('BodyPix failed to load:', e);
+  }
+}
+
+let neuralRunning = false;
+async function runNeuralLoop() {
+  if (!neuralRunning) return;
+  if (!state.bodyPixReady || state.filter !== 'neural') return;
+
+  try {
+    const segmentation = await state.bodyPixModel.segmentPersonParts(video, {
+      flipHorizontal: false,
+      internalResolution: 'low',
+      segmentationThreshold: 0.6,
+    });
+
+    drawNeuralOverlay(segmentation);
+  } catch(e) {
+    // silent
+  }
+
+  if (neuralRunning && state.filter === 'neural') {
+    requestAnimationFrame(runNeuralLoop);
+  }
+}
+
+const PART_COLORS = [
+  [255, 80,  80],   // 0 left_face
+  [255, 80,  80],   // 1 right_face
+  [80,  255, 200],  // 2 left_upper_arm_front
+  [80,  200, 255],  // 3 left_upper_arm_back
+  [80,  255, 200],  // 4 right_upper_arm_front
+  [80,  200, 255],  // 5 right_upper_arm_back
+  [80,  255, 200],  // 6 left_lower_arm_front
+  [80,  200, 255],  // 7 left_lower_arm_back
+  [80,  255, 200],  // 8 right_lower_arm_front
+  [80,  200, 255],  // 9 right_lower_arm_back
+  [255, 200, 80],   // 10 left_hand
+  [255, 200, 80],   // 11 right_hand
+  [255, 100, 200],  // 12 torso_front
+  [200, 80,  255],  // 13 torso_back
+  [0,   200, 255],  // 14 left_upper_leg_front
+  [0,   160, 255],  // 15 left_upper_leg_back
+  [0,   200, 255],  // 16 right_upper_leg_front
+  [0,   160, 255],  // 17 right_upper_leg_back
+  [0,   255, 180],  // 18 left_lower_leg_front
+  [0,   200, 150],  // 19 left_lower_leg_back
+  [0,   255, 180],  // 20 right_lower_leg_front
+  [0,   200, 150],  // 21 right_lower_leg_back
+  [255, 255, 100],  // 22 left_foot
+  [255, 255, 100],  // 23 right_foot
+];
+
+function drawNeuralOverlay(seg) {
+  const ctx = neuralCanvas.getContext('2d');
+  const W = neuralCanvas.width;
+  const H = neuralCanvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const { data, width: sw, height: sh } = seg;
+  if (!data || data.length === 0) return;
+
+  const imgData = ctx.createImageData(W, H);
+  const pxData  = imgData.data;
+
+  const scaleX = W / sw;
+  const scaleY = H / sh;
+
+  for (let sy = 0; sy < sh; sy++) {
+    for (let sx = 0; sx < sw; sx++) {
+      const partId = data[sy * sw + sx];
+      if (partId === -1) continue;
+
+      const color = PART_COLORS[partId] || [255, 255, 255];
+
+      // Map seg pixel → canvas pixels
+      const x0 = Math.floor(sx * scaleX);
+      const y0 = Math.floor(sy * scaleY);
+      const x1 = Math.floor((sx + 1) * scaleX);
+      const y1 = Math.floor((sy + 1) * scaleY);
+
+      for (let cy = y0; cy < y1; cy++) {
+        for (let cx = x0; cx < x1; cx++) {
+          const idx = (cy * W + cx) * 4;
+          pxData[idx]   = color[0];
+          pxData[idx+1] = color[1];
+          pxData[idx+2] = color[2];
+          pxData[idx+3] = 160; // semi-transparent
+        }
+      }
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+
+  // Draw part labels
+  ctx.font = '8px Share Tech Mono';
+  ctx.fillStyle = 'rgba(0,255,65,0.8)';
+  ctx.fillText(`SEGMENTS: ${new Set(Array.from(data).filter(x=>x>=0)).size} PARTS`, 20, H - 100);
+}
+
+// ═══════════════════════════════════════════
+//  FILTER SWITCHING
+// ═══════════════════════════════════════════
+function switchFilter(name) {
+  const prev = state.filter;
+  state.filter = name;
+
+  // Stop previous special modes
+  if (prev === 'matrix') {
+    cancelAnimationFrame(state.matrixAnimId);
+    matrixCanvas.style.display = 'none';
+  }
+  if (prev === 'neural') {
+    neuralRunning = false;
+    neuralCanvas.style.display = 'none';
+  }
+
+  // Switch shader material
+  shaderMesh.material = shaderMaterials[name];
+
+  // Update name
+  document.getElementById('filter-name').textContent = FILTER_NAMES[name] || name.toUpperCase();
+
+  // Start special modes
+  if (name === 'matrix') {
+    matrixCanvas.style.display = 'block';
+    resizeMatrix();
+    drawMatrix();
+  }
+
+  if (name === 'neural') {
+    neuralCanvas.width  = window.innerWidth;
+    neuralCanvas.height = window.innerHeight;
+    neuralCanvas.style.display = 'block';
+
+    if (!state.bodyPixReady && !state.bodyPixLoading) {
+      loadBodyPix().then(() => {
+        neuralRunning = true;
+        runNeuralLoop();
+      });
+    } else if (state.bodyPixReady) {
+      neuralRunning = true;
+      runNeuralLoop();
+    } else {
+      // Still loading – wait
+      const wait = setInterval(() => {
+        if (state.bodyPixReady) {
+          clearInterval(wait);
+          if (state.filter === 'neural') {
+            neuralRunning = true;
+            runNeuralLoop();
+          }
+        }
+      }, 500);
+    }
+  }
+
+  // Mode extra text
+  const extras = {
+    green:   'SOBEL EDGE DETECTION',
+    thermal: 'INFRARED FALSE COLOR',
+    glitch:  'CHROMATIC ABERRATION',
+    neural:  'BODYPIX SEGMENTATION',
+    matrix:  'ASCII CASCADE',
+    noir:    'HIGH CONTRAST B&W',
+  };
+  document.getElementById('mode-extra').textContent = extras[name] || '';
+
+  // Update buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === name);
+  });
+}
+
+function setupFilterBar() {
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchFilter(btn.dataset.filter));
+  });
+}
+
+// ═══════════════════════════════════════════
+//  FPS
+// ═══════════════════════════════════════════
+function updateFPS() {
+  const now = performance.now();
+  const elapsed = now - state.lastFpsTime;
+  const fps = Math.round(state.frameCount / (elapsed / 1000));
+  state.fps = fps;
+  state.frameCount = 0;
+  state.lastFpsTime = now;
+  document.getElementById('fps-counter').textContent = `FPS: ${fps}`;
+}
+
+// ═══════════════════════════════════════════
+//  RESIZE
+// ═══════════════════════════════════════════
+window.addEventListener('resize', () => {
+  if (!renderer) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  renderer.setSize(W, H);
+
+  const resVec = new THREE.Vector2(W, H);
+  for (const mat of Object.values(shaderMaterials)) {
+    mat.uniforms.res.value = resVec.clone();
+  }
+
+  neuralCanvas.width  = W;
+  neuralCanvas.height = H;
+  resizeMatrix();
+});
+
+// Keyboard shortcuts (desktop)
+window.addEventListener('keydown', (e) => {
+  const map = { '1':'green','2':'thermal','3':'glitch','4':'neural','5':'matrix','6':'noir' };
+  if (map[e.key]) switchFilter(map[e.key]);
+});
+
 </script>
+
 </body>
 </html>

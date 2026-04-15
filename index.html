@@ -17,50 +17,53 @@
     font-family:'Share Tech Mono',monospace; color:var(--green);
     user-select:none; -webkit-user-select:none;
   }
-  #start-screen {
-    position:fixed; inset:0; background:#000; display:flex;
-    flex-direction:column; align-items:center; justify-content:center;
-    z-index:200; gap:24px;
-  }
-  .scan-line-anim {
-    position:absolute; inset:0; pointer-events:none;
-    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.03) 2px,rgba(0,255,65,.03) 4px);
-  }
-  .logo {
-    font-family:'Orbitron',monospace; font-weight:900;
-    font-size:clamp(28px,8vw,64px); letter-spacing:.15em;
-    color:var(--green); text-shadow:0 0 30px var(--green),0 0 60px #00ff4155;
-    animation:flicker 4s infinite;
-  }
-  .logo span { color:#fff; }
-  .tagline { font-size:11px; letter-spacing:4px; color:#555; text-transform:uppercase; }
-  @keyframes flicker {
-    0%,95%,100%{opacity:1} 96%{opacity:.6} 97%{opacity:1} 98%{opacity:.4} 99%{opacity:.9}
-  }
-  #btn-start {
-    margin-top:16px; padding:14px 40px; background:transparent;
-    border:1px solid var(--green); color:var(--green);
-    font-family:'Share Tech Mono',monospace; font-size:13px; letter-spacing:4px;
-    text-transform:uppercase; cursor:pointer; position:relative; overflow:hidden; transition:color .3s;
-  }
-  #btn-start::before {
-    content:''; position:absolute; inset:0; background:var(--green);
-    transform:scaleX(0); transform-origin:left; transition:transform .3s ease; z-index:-1;
-  }
-  #btn-start:hover::before { transform:scaleX(1); }
-  #btn-start:hover { color:#000; }
 
+/* ── START SCREEN ── */
+#start-screen {
+position:fixed; inset:0; background:#000; display:flex;
+flex-direction:column; align-items:center; justify-content:center;
+z-index:200; gap:24px;
+}
+.scan-line-anim {
+position:absolute; inset:0; pointer-events:none;
+background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.03) 2px,rgba(0,255,65,.03) 4px);
+}
+.logo {
+font-family:‘Orbitron’,monospace; font-weight:900;
+font-size:clamp(28px,8vw,64px); letter-spacing:.15em;
+color:var(–green); text-shadow:0 0 30px var(–green),0 0 60px #00ff4155;
+animation:flicker 4s infinite;
+}
+.logo span { color:#fff; }
+.tagline { font-size:11px; letter-spacing:4px; color:#555; text-transform:uppercase; }
+@keyframes flicker {
+0%,95%,100%{opacity:1} 96%{opacity:.6} 97%{opacity:1} 98%{opacity:.4} 99%{opacity:.9}
+}
+#btn-start {
+margin-top:16px; padding:14px 40px; background:transparent;
+border:1px solid var(–green); color:var(–green);
+font-family:‘Share Tech Mono’,monospace; font-size:13px; letter-spacing:4px;
+text-transform:uppercase; cursor:pointer; position:relative; overflow:hidden; transition:color .3s;
+}
+#btn-start::before {
+content:’’; position:absolute; inset:0; background:var(–green);
+transform:scaleX(0); transform-origin:left; transition:transform .3s ease; z-index:-1;
+}
+#btn-start:hover::before { transform:scaleX(1); }
+#btn-start:hover { color:#000; }
+
+/* ── APP ── */
 #app { display:none; position:fixed; inset:0; }
 #app.active { display:block; }
 video { display:none; }
 #three-canvas { position:absolute; inset:0; width:100%; height:100%; }
 #neural-canvas { position:absolute; inset:0; width:100%; height:100%; display:none; pointer-events:none; }
-#matrix-canvas { position:absolute; inset:0; display:none; pointer-events:none; }
 
+/* ── HUD ── */
 .hud { position:absolute; inset:0; pointer-events:none; z-index:10; }
 .scanlines {
 position:absolute; inset:0; pointer-events:none;
-background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.15) 3px,rgba(0,0,0,.15) 4px);
+background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.12) 3px,rgba(0,0,0,.12) 4px);
 }
 .corner { position:absolute; width:30px; height:30px; border-color:var(–green); border-style:solid; opacity:.7; }
 .corner.tl { top:16px; left:16px; border-width:2px 0 0 2px; }
@@ -85,6 +88,34 @@ display:flex; align-items:center; gap:6px; color:#00ff4155;
 #neural-dot.ready   { background:var(–green); box-shadow:0 0 8px var(–green); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
+/* Neural confidence bar */
+#confidence-bar-wrap {
+position:absolute; bottom:88px; right:20px;
+display:none; flex-direction:column; align-items:flex-end; gap:4px;
+}
+#confidence-bar-wrap.visible { display:flex; }
+#confidence-label { font-size:8px; letter-spacing:2px; color:#00ff4188; }
+#confidence-bar {
+width:80px; height:3px; background:#111; border:1px solid #00ff4133;
+}
+#confidence-fill { height:100%; background:var(–green); width:0%; transition:width .4s; box-shadow:0 0 6px var(–green); }
+
+/* Thermal legend */
+#thermal-legend {
+position:absolute; right:20px; top:50%; transform:translateY(-50%);
+display:none; flex-direction:column; align-items:center; gap:4px;
+}
+#thermal-legend.visible { display:flex; }
+#thermal-legend .leg-label { font-size:7px; letter-spacing:2px; color:#ffffff88; }
+#thermal-grad {
+width:12px; height:120px;
+background:linear-gradient(to bottom,#ffffff,#ffffa0,#ff8c00,#ff2200,#880000,#220022,#000066);
+border:1px solid #ffffff22;
+}
+#thermal-legend .leg-hot  { color:#ffffa0; font-size:7px; letter-spacing:1px; }
+#thermal-legend .leg-cold { color:#4488ff; font-size:7px; letter-spacing:1px; }
+
+/* ── FILTER BAR ── */
 #filter-bar {
 position:absolute; bottom:0; left:0; right:0; height:72px;
 background:linear-gradient(transparent,rgba(0,0,0,.92));
@@ -92,10 +123,10 @@ display:flex; align-items:center; justify-content:center;
 gap:8px; padding:0 12px; z-index:20; pointer-events:all;
 }
 .filter-btn {
-flex:1; max-width:72px; height:44px;
+flex:1; max-width:96px; height:44px;
 background:rgba(0,255,65,.05); border:1px solid rgba(0,255,65,.2);
 color:rgba(0,255,65,.5); font-family:‘Share Tech Mono’,monospace;
-font-size:7px; letter-spacing:1px; text-transform:uppercase; text-align:center;
+font-size:8px; letter-spacing:1px; text-transform:uppercase; text-align:center;
 cursor:pointer; display:flex; flex-direction:column; align-items:center;
 justify-content:center; gap:3px; transition:all .2s;
 -webkit-tap-highlight-color:transparent; padding:0 4px; line-height:1.2;
@@ -106,6 +137,7 @@ background:rgba(0,255,65,.15); border-color:var(–green); color:var(–green);
 box-shadow:0 0 12px rgba(0,255,65,.3),inset 0 0 8px rgba(0,255,65,.05);
 }
 .filter-btn:active { transform:scale(.95); background:rgba(0,255,65,.25); }
+
 #loading-bar {
 position:absolute; bottom:80px; left:50%; transform:translateX(-50%);
 width:200px; height:2px; background:#111; z-index:30; display:none;
@@ -119,7 +151,7 @@ width:200px; height:2px; background:#111; z-index:30; display:none;
 <div id="start-screen">
   <div class="scan-line-anim"></div>
   <div class="logo">VISION <span>SUITE</span></div>
-  <div class="tagline">5 cinematic filters · neural body detection</div>
+  <div class="tagline">3 cinematic filters · neural body detection</div>
   <button id="btn-start">INITIALIZE SYSTEM</button>
 </div>
 
@@ -127,7 +159,7 @@ width:200px; height:2px; background:#111; z-index:30; display:none;
   <video id="v" playsinline muted autoplay></video>
   <canvas id="three-canvas"></canvas>
   <canvas id="neural-canvas"></canvas>
-  <canvas id="matrix-canvas"></canvas>
+
   <div class="hud">
     <div class="scanlines"></div>
     <div class="corner tl"></div><div class="corner tr"></div>
@@ -142,14 +174,30 @@ width:200px; height:2px; background:#111; z-index:30; display:none;
       <span id="neural-label">NEURAL: OFFLINE</span>
     </div>
     <div class="readout bottom-left"><div id="mode-extra"></div></div>
+
+```
+<!-- confidence -->
+<div id="confidence-bar-wrap">
+  <div id="confidence-label">DETECTION</div>
+  <div id="confidence-bar"><div id="confidence-fill"></div></div>
+</div>
+
+<!-- thermal legend -->
+<div id="thermal-legend">
+  <div class="leg-hot">HOT</div>
+  <div id="thermal-grad"></div>
+  <div class="leg-cold">COLD</div>
+</div>
+```
+
   </div>
+
   <div id="loading-bar"><div id="loading-progress"></div></div>
+
   <div id="filter-bar">
     <button class="filter-btn active" data-filter="green"><span class="icon">◈</span>GREEN</button>
     <button class="filter-btn" data-filter="thermal"><span class="icon">🌡</span>THERMAL</button>
-    <button class="filter-btn" data-filter="glitch"><span class="icon">⚡</span>GLITCH</button>
     <button class="filter-btn" data-filter="neural"><span class="icon">🧠</span>NEURAL</button>
-    <button class="filter-btn" data-filter="matrix"><span class="icon">⌨</span>MATRIX</button>
   </div>
 </div>
 
@@ -158,31 +206,30 @@ width:200px; height:2px; background:#111; z-index:30; display:none;
 
 const state = {
   filter:'green', frameCount:0, lastFpsTime:0,
-  bodyPixModel:null, bodyPixLoading:false, bodyPixReady:false,
-  matrixCtx:null, matrixAnimId:null, matrixColumns:[]
+  bodyPixModel:null, bodyPixLoading:false, bodyPixReady:false
 };
 
 const video        = document.getElementById('v');
 const threeCanvas  = document.getElementById('three-canvas');
 const neuralCanvas = document.getElementById('neural-canvas');
-const matrixCanvas = document.getElementById('matrix-canvas');
 
-// ────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════
 //  SHADERS
-// ────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════
 const V = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.); }`;
 
 const SHADERS = {
 
+  // ── GREEN EDGE DETECTION ──────────────────────────
   green: { vert:V, frag:`
     precision mediump float;
     uniform sampler2D t; uniform vec2 res; varying vec2 vUv;
     void main(){
       vec2 p=vec2(1./res.x,1./res.y);
       float s11=texture2D(t,vUv+vec2(-p.x,-p.y)).r, s12=texture2D(t,vUv+vec2(0.,-p.y)).r,
-            s13=texture2D(t,vUv+vec2(p.x,-p.y)).r,  s21=texture2D(t,vUv+vec2(-p.x,0.)).r,
-            s23=texture2D(t,vUv+vec2(p.x,0.)).r,    s31=texture2D(t,vUv+vec2(-p.x,p.y)).r,
-            s32=texture2D(t,vUv+vec2(0.,p.y)).r,    s33=texture2D(t,vUv+vec2(p.x,p.y)).r;
+            s13=texture2D(t,vUv+vec2( p.x,-p.y)).r, s21=texture2D(t,vUv+vec2(-p.x,0.)).r,
+            s23=texture2D(t,vUv+vec2( p.x, 0.)).r,  s31=texture2D(t,vUv+vec2(-p.x,p.y)).r,
+            s32=texture2D(t,vUv+vec2(0., p.y)).r,   s33=texture2D(t,vUv+vec2( p.x,p.y)).r;
       float gx=s13+2.*s23+s33-(s11+2.*s21+s31), gy=s31+2.*s32+s33-(s11+2.*s12+s13);
       float e=sqrt(gx*gx+gy*gy);
       float sc=sin(vUv.y*res.y*3.14159)*.04+.96;
@@ -190,130 +237,125 @@ const SHADERS = {
     }`
   },
 
+  // ── PREDATOR THERMAL ─────────────────────────────
+  // Colour ramp: deep indigo → midnight blue → dark teal → yellow-green →
+  //              orange → red-orange → white-hot centre
+  // + chromatic bloom on bright spots + film grain + subtle warp
   thermal: { vert:V, frag:`
-    precision mediump float;
-    uniform sampler2D t; uniform float time; varying vec2 vUv;
-    vec3 tc(float v){
-      v=clamp(v,0.,1.);
-      if(v<.25)  return mix(vec3(0.,0.,.5),vec3(0.,.8,.8),v/.25);
-      if(v<.5)   return mix(vec3(0.,.8,.8),vec3(0.,1.,0.),(v-.25)/.25);
-      if(v<.75)  return mix(vec3(0.,1.,0.),vec3(1.,.5,0.),(v-.5)/.25);
-      return mix(vec3(1.,.5,0.),vec3(1.,1.,1.),(v-.75)/.25);
+    precision highp float;
+    uniform sampler2D t;
+    uniform float time;
+    uniform vec2 res;
+    varying vec2 vUv;
+
+    // hash noise
+    float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
+    float noise(vec2 p){
+      vec2 i=floor(p), f=fract(p), u=f*f*(3.-2.*f);
+      return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),
+                 mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);
     }
+
+    // Predator-style thermal palette
+    // 0=cold(deep indigo) → 1=hot(white)
+    vec3 predatorRamp(float v){
+      v=clamp(v,0.,1.);
+      // 8-stop gradient matching classic Predator vision
+      if(v<.08)  return mix(vec3(.00,.00,.08), vec3(.00,.00,.28), v/.08);
+      if(v<.18)  return mix(vec3(.00,.00,.28), vec3(.00,.06,.55), (v-.08)/.10);
+      if(v<.30)  return mix(vec3(.00,.06,.55), vec3(.00,.30,.70), (v-.18)/.12);
+      if(v<.44)  return mix(vec3(.00,.30,.70), vec3(.10,.65,.45), (v-.30)/.14);
+      if(v<.58)  return mix(vec3(.10,.65,.45), vec3(.80,.80,.00), (v-.44)/.14);
+      if(v<.72)  return mix(vec3(.80,.80,.00), vec3(1.00,.40,.00), (v-.58)/.14);
+      if(v<.86)  return mix(vec3(1.00,.40,.00), vec3(1.00,.10,.00), (v-.72)/.14);
+      return      mix(vec3(1.00,.10,.00), vec3(1.00,1.00,.95), (v-.86)/.14);
+    }
+
     void main(){
-      vec3 col=texture2D(t,vUv).rgb;
-      float lum=dot(col,vec3(.299,.587,.114));
-      float n=fract(sin(dot(vUv+time*.001,vec2(127.1,311.7)))*43758.5);
-      gl_FragColor=vec4(tc(lum+n*.03),1.);
+      float T = time * .001;
+      vec2 uv = vUv;
+
+      // subtle atmospheric warp (heat shimmer)
+      float shimmer = noise(uv*18.+vec2(T*.6,T*.4))*.004
+                    + noise(uv*36.-vec2(T*.9,T*.2))*.002;
+      uv += vec2(shimmer, shimmer*.5);
+
+      vec3 col = texture2D(t, uv).rgb;
+
+      // luminance as "heat" proxy
+      float lum = dot(col, vec3(.299,.587,.114));
+
+      // spatial noise overlay (sensor grain)
+      float grain = (noise(uv*res*.5 + T*37.) - .5) * .04;
+      lum = clamp(lum + grain, 0., 1.);
+
+      // slight local contrast boost (unsharp)
+      vec2 px = vec2(1./res.x, 1./res.y);
+      float blur = (
+        texture2D(t,uv+vec2(-px.x,-px.y)).r +
+        texture2D(t,uv+vec2( px.x,-px.y)).r +
+        texture2D(t,uv+vec2(-px.x, px.y)).r +
+        texture2D(t,uv+vec2( px.x, px.y)).r
+      )*.25;
+      float detail = dot(col,vec3(.299,.587,.114));
+      lum = clamp(lum + (detail - blur) * 1.6, 0., 1.);
+
+      // map to Predator colour
+      vec3 thermo = predatorRamp(lum);
+
+      // chromatic bloom: hot areas bleed light
+      float hotness = smoothstep(.72, 1., lum);
+      float bloomR = texture2D(t,uv+vec2( px.x*3.,0.)).r;
+      float bloomL = texture2D(t,uv-vec2( px.x*3.,0.)).r;
+      float bloom = (bloomR+bloomL)*.5 * hotness * .35;
+      thermo += vec3(bloom*.9, bloom*.5, bloom*.1);
+
+      // vignette (scope edge darkening)
+      vec2 vc = vUv-.5;
+      float vign = 1. - dot(vc,vc)*1.8;
+      vign = clamp(vign,0.,1.);
+
+      // soft scanline for sensor-texture feel
+      float scan = .92 + .08*sin(uv.y*res.y*1.5708);
+
+      gl_FragColor = vec4(thermo * vign * scan, 1.);
     }`
   },
 
-  // ── GLITCH: 10 combined effects ─────────────────────────────────────────
-  glitch: { vert:V, frag:`
-    precision mediump float;
-    uniform sampler2D t; uniform float time; uniform vec2 res; varying vec2 vUv;
-    float rnd(vec2 c){ return fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453); }
-
-    void main(){
-      float T=time*.001;
-
-      // 1. HORIZONTAL GLITCH BANDS
-      float band=floor(vUv.y*28.);
-      float gAmt=rnd(vec2(band,floor(T*12.)))*0.06;
-      gAmt*=step(.78,rnd(vec2(band*.07,T)));
-      // mega-jump bursts
-      gAmt+=step(.97,rnd(vec2(floor(T*4.),5.5)))*0.12*step(.5,rnd(vec2(band,T*.3)));
-
-      // 2. SYNC ROLL
-      float rollJump=step(.995,rnd(vec2(floor(T*.8),1.)))*0.05;
-      float rollShift=smoothstep(0.,.005,fract(vUv.y+T*.6))*rollJump;
-
-      // 3. WAVE DISTORTION (two frequencies)
-      float w1=sin(vUv.y*90.+T*6.)*.0025;
-      float w2=sin(vUv.y*23.-T*2.5)*.0015;
-
-      vec2 uv=vUv+vec2(gAmt+w1+w2, rollShift);
-
-      // 4. CHROMATIC ABERRATION (H + V)
-      float sH=0.006+gAmt*2.5+step(.92,rnd(vec2(floor(T*7.),3.)))*.025;
-      float sV=sH*.4;
-      float r =texture2D(t,uv+vec2( sH, sV)).r;
-      float g =texture2D(t,uv               ).g;
-      float b =texture2D(t,uv-vec2( sH, sV)).b;
-      vec3 col=vec3(r,g,b);
-
-      // 5. BLOCK CORRUPTION (datamosh)
-      float bx=floor(vUv.x/0.071), by=floor(vUv.y/0.1);
-      float bRnd=rnd(vec2(bx,by+floor(T*5.)));
-      if(bRnd>.93){
-        vec2 off=vec2((rnd(vec2(bx*.3,T))-.5)*.15,(rnd(vec2(by*.3,T))-.5)*.04);
-        col=texture2D(t,uv+off).rgb;
-        col.r*=1.5; col.g*=.5; // corrupt color tint
-      }
-
-      // 6. VHS NOISE – sporadic bright specks
-      float noise=rnd(vUv+fract(T))*.14;
-      noise*=step(.62,rnd(vec2(vUv.y*100.,T*3.)));
-      col+=vec3(noise*.5,noise*.7,noise*.4);
-
-      // 7. SCANLINE FLICKER + LINE DROPOUT
-      float scan=.82+.18*sin(vUv.y*res.y*2.+T*.5);
-      float drop=step(.986,rnd(vec2(floor(vUv.y*res.y),T*22.)));
-      scan*=(1.-drop*.85);
-
-      // 8. RANDOM INVERT FLASH
-      float inv=step(.984,rnd(vec2(floor(T*6.),9.9)));
-      col=mix(col,1.-col,inv*.75);
-
-      // 9. COLOR BLEED (trailing red ghost)
-      float bleed=texture2D(t,uv+vec2(.022,0.)).r*.16;
-      col.r=clamp(col.r+bleed*gAmt*9.,0.,1.);
-
-      // 10. VIGNETTE
-      vec2 vc=vUv-.5;
-      float vign=clamp(1.-dot(vc,vc)*2.8,0.,1.);
-
-      gl_FragColor=vec4(col*scan*vign,1.);
-    }`
-  },
-
+  // ── NEURAL (desaturated base for overlay) ─────────
   neural: { vert:V, frag:`
     precision mediump float;
     uniform sampler2D t; varying vec2 vUv;
     void main(){
-      vec3 col=texture2D(t,vUv).rgb;
-      float lum=dot(col,vec3(.299,.587,.114));
-      gl_FragColor=vec4(mix(vec3(lum),col,.3),1.);
-    }`
-  },
-
-  matrix: { vert:V, frag:`
-    precision mediump float;
-    uniform sampler2D t; varying vec2 vUv;
-    void main(){
-      vec3 col=texture2D(t,vUv).rgb;
-      float lum=dot(col,vec3(.299,.587,.114));
-      gl_FragColor=vec4(0.,lum*.11,0.,1.);
+      vec3 col = texture2D(t,vUv).rgb;
+      float lum = dot(col,vec3(.299,.587,.114));
+      // dark desaturated base so overlay pops
+      vec3 base = mix(vec3(lum*.55), col*.5, .25);
+      gl_FragColor = vec4(base, 1.);
     }`
   }
 };
 
 const FILTER_NAMES = {
-  green:'GREEN VISION', thermal:'THERMAL SCAN',
-  glitch:'SIGNAL GLITCH', neural:'NEURAL BODY', matrix:'MATRIX RAIN'
+  green:'GREEN VISION', thermal:'PREDATOR THERMAL', neural:'NEURAL BODY'
+};
+const FILTER_EXTRAS = {
+  green:'SOBEL EDGE DETECTION',
+  thermal:'INFRARED FALSE COLOR · HEAT SHIMMER',
+  neural:'BODYPIX PART SEGMENTATION'
 };
 
-// ────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════
 //  THREE.JS
-// ────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════
 let scene, camera, renderer, videoTexture, shaderMesh, shaderMaterials={};
 
 function setupThree(){
-  scene  = new THREE.Scene();
-  camera = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  scene    = new THREE.Scene();
+  camera   = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   renderer = new THREE.WebGLRenderer({canvas:threeCanvas, antialias:false});
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   videoTexture = new THREE.VideoTexture(video);
   const geom   = new THREE.PlaneGeometry(2,2);
@@ -332,241 +374,299 @@ function setupThree(){
 
 function renderThree(ts=0){
   requestAnimationFrame(renderThree);
-  for(const m of Object.values(shaderMaterials)) m.uniforms.time.value=ts;
+  for(const m of Object.values(shaderMaterials)) m.uniforms.time.value = ts;
   renderer.render(scene, camera);
   state.frameCount++;
 }
 
-// ────────────────────────────────────────────────────
-//  MATRIX RAIN  –  camera-aware brightness
-// ────────────────────────────────────────────────────
-const CHARS = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ░▒▓◈◉▪';
-const CS     = 14; // cell size px
-
-let sampleCvs, sampleCtx2d;
-
-function setupMatrix(){
-  state.matrixCtx = matrixCanvas.getContext('2d');
-  sampleCvs = document.createElement('canvas');
-  sampleCtx2d = sampleCvs.getContext('2d');
-  resizeMatrix();
-}
-
-function resizeMatrix(){
-  const W = window.innerWidth, H = window.innerHeight;
-  matrixCanvas.width = W; matrixCanvas.height = H;
-  const cols = Math.floor(W/CS);
-  state.matrixColumns = Array.from({length:cols}, () => ({
-    y: Math.floor(Math.random() * -(H/CS)),
-    speed: 0.35 + Math.random()*0.85
-  }));
-  sampleCvs.width  = cols;
-  sampleCvs.height = 4;
-}
-
-// get brightness [0..1] for column i, mirroring vertical position rowFrac
-function colBright(i, rowFrac){
-  try {
-    const row = Math.max(0, Math.min(sampleCvs.height-1, Math.floor(rowFrac * sampleCvs.height)));
-    const px  = sampleCtx2d.getImageData(i, row, 1, 1).data;
-    return (px[0]*.299 + px[1]*.587 + px[2]*.114) / 255;
-  } catch(e){ return .5; }
-}
-
-function drawMatrix(){
-  if(state.filter !== 'matrix') return;
-
-  const ctx  = state.matrixCtx;
-  const W    = matrixCanvas.width;
-  const H    = matrixCanvas.height;
-  const cols = state.matrixColumns.length;
-
-  // trailing fade
-  ctx.fillStyle = 'rgba(0,0,0,0.052)';
-  ctx.fillRect(0,0,W,H);
-
-  // sample current video frame once per animation frame
-  let sampled = false;
-  if(video.videoWidth>0 && video.readyState>=2){
-    try { sampleCtx2d.drawImage(video,0,0,cols,sampleCvs.height); sampled=true; } catch(e){}
-  }
-
-  ctx.font = `${CS-1}px "Share Tech Mono",monospace`;
-
-  state.matrixColumns.forEach((col, i) => {
-    const x   = i * CS;
-    const yPx = col.y * CS;
-
-    // brightness at head position maps to scene brightness
-    let br = .5;
-    if(sampled){
-      const rowFrac = Math.max(0, Math.min(1, col.y / (H/CS)));
-      br = colBright(i, rowFrac);
-    }
-
-    // HEAD char – colour = green tinted by scene brightness
-    // dark scene → dim green, bright scene → near-white green
-    const headG = Math.floor(180 + br * 75);
-    const headR = Math.floor(br * 180);
-    ctx.fillStyle = `rgba(${headR},${headG},${Math.floor(headR*.5)},1.0)`;
-    ctx.fillText(CHARS[Math.floor(Math.random()*CHARS.length)], x, yPx);
-
-    // first trail char
-    if(col.y > 1){
-      const g2 = Math.floor(100 + br*110);
-      ctx.fillStyle = `rgba(0,${g2},${Math.floor(br*30)},.65)`;
-      ctx.fillText(CHARS[Math.floor(Math.random()*CHARS.length)], x, yPx - CS);
-    }
-    // second trail char (rarer mutation)
-    if(col.y > 2 && Math.random()>.6){
-      ctx.fillStyle = `rgba(0,${Math.floor(60+br*70)},0,.4)`;
-      ctx.fillText(CHARS[Math.floor(Math.random()*CHARS.length)], x, yPx - CS*2);
-    }
-
-    col.y += col.speed;
-    if(col.y * CS > H && Math.random() > .972){
-      col.y     = Math.floor(Math.random()*-14);
-      col.speed = 0.35 + Math.random()*.85;
-    }
-  });
-
-  state.matrixAnimId = requestAnimationFrame(drawMatrix);
-}
-
-// ────────────────────────────────────────────────────
-//  BODYPIX
-// ────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════
+//  BODYPIX – corrected neural mode
+// ════════════════════════════════════════════════════
 async function loadBodyPix(){
-  if(state.bodyPixLoading||state.bodyPixReady) return;
-  state.bodyPixLoading=true;
-  const dot=document.getElementById('neural-dot'), label=document.getElementById('neural-label');
-  const bar=document.getElementById('loading-bar'), prog=document.getElementById('loading-progress');
-  dot.className='loading'; label.textContent='NEURAL: LOADING';
-  bar.style.display='block'; prog.style.width='30%';
-  try{
-    state.bodyPixModel = await bodyPix.load({architecture:'MobileNetV1',outputStride:16,multiplier:.75,quantBytes:2});
-    prog.style.width='100%';
-    setTimeout(()=>{ bar.style.display='none'; },600);
-    state.bodyPixReady=true; state.bodyPixLoading=false;
-    dot.className='ready'; label.textContent='NEURAL: READY';
-  }catch(e){
-    dot.className=''; label.textContent='NEURAL: FAILED'; bar.style.display='none';
+  if(state.bodyPixLoading || state.bodyPixReady) return;
+  state.bodyPixLoading = true;
+  const dot   = document.getElementById('neural-dot');
+  const label = document.getElementById('neural-label');
+  const bar   = document.getElementById('loading-bar');
+  const prog  = document.getElementById('loading-progress');
+  dot.className = 'loading'; label.textContent = 'NEURAL: LOADING';
+  bar.style.display = 'block'; prog.style.width = '30%';
+  try {
+    state.bodyPixModel = await bodyPix.load({
+      architecture:'MobileNetV1', outputStride:16, multiplier:.75, quantBytes:2
+    });
+    prog.style.width = '100%';
+    setTimeout(()=>{ bar.style.display='none'; }, 600);
+    state.bodyPixReady   = true;
+    state.bodyPixLoading = false;
+    dot.className = 'ready'; label.textContent = 'NEURAL: READY';
+  } catch(e) {
+    dot.className = ''; label.textContent = 'NEURAL: FAILED'; bar.style.display='none';
+    state.bodyPixLoading = false;
   }
 }
 
-let neuralRunning=false;
-async function runNeuralLoop(){
-  if(!neuralRunning||!state.bodyPixReady||state.filter!=='neural') return;
-  try{
-    const seg = await state.bodyPixModel.segmentPersonParts(video,{
-      flipHorizontal:false, internalResolution:'low', segmentationThreshold:.6
-    });
-    drawNeuralOverlay(seg);
-  }catch(e){}
-  if(neuralRunning && state.filter==='neural') requestAnimationFrame(runNeuralLoop);
-}
-
-const PART_COLORS=[
-  [255,80,80],[255,80,80],[80,255,200],[80,200,255],[80,255,200],[80,200,255],
-  [80,255,200],[80,200,255],[80,255,200],[80,200,255],[255,200,80],[255,200,80],
-  [255,100,200],[200,80,255],[0,200,255],[0,160,255],[0,200,255],[0,160,255],
-  [0,255,180],[0,200,150],[0,255,180],[0,200,150],[255,255,100],[255,255,100]
+// Body-part colour palette (per BodyPix 24-part index)
+// Warm hues for core body, cool for limbs, distinct face colour
+const PART_COLORS = [
+  // 0,1  – left/right face: bright cyan
+  [0,240,255],[0,200,255],
+  // 2,3  – left/right upper arm: lime
+  [100,255,80],[80,220,60],
+  // 4,5  – left/right lower arm: green-yellow
+  [180,255,60],[150,220,50],
+  // 6,7  – left/right upper leg: orange
+  [255,160,0],[255,130,0],
+  // 8,9  – left/right lower leg: amber
+  [255,210,0],[255,180,0],
+  // 10,11 – left/right upper leg (back): red-orange
+  [255,80,0],[230,60,0],
+  // 12,13 – left/right lower leg (back): red
+  [255,50,50],[220,30,30],
+  // 14,15 – left/right upper arm (back): magenta
+  [255,0,200],[200,0,180],
+  // 16,17 – left/right lower arm (back): violet
+  [180,0,255],[140,0,220],
+  // 18,19 – torso front: white-ish
+  [220,255,220],[200,240,200],
+  // 20,21 – torso back: light teal
+  [80,255,200],[60,220,180],
+  // 22,23 – head top / neck
+  [0,255,255],[0,200,240]
 ];
 
+const PART_NAMES = [
+  'LEFT_FACE','RIGHT_FACE','LEFT_UPPER_ARM_FRONT','RIGHT_UPPER_ARM_FRONT',
+  'LEFT_UPPER_ARM_BACK','RIGHT_UPPER_ARM_BACK','LEFT_LOWER_ARM_FRONT','RIGHT_LOWER_ARM_FRONT',
+  'LEFT_LOWER_ARM_BACK','RIGHT_LOWER_ARM_BACK','LEFT_HAND','RIGHT_HAND',
+  'TORSO_FRONT','TORSO_BACK','LEFT_UPPER_LEG_FRONT','RIGHT_UPPER_LEG_FRONT',
+  'LEFT_UPPER_LEG_BACK','RIGHT_UPPER_LEG_BACK','LEFT_LOWER_LEG_FRONT','RIGHT_LOWER_LEG_FRONT',
+  'LEFT_LOWER_LEG_BACK','RIGHT_LOWER_LEG_BACK','LEFT_FOOT','RIGHT_FOOT'
+];
+
+let neuralRunning   = false;
+let neuralAnimFrame = null;
+let lastSegData     = null;
+
+async function runNeuralLoop(){
+  if(!neuralRunning || !state.bodyPixReady || state.filter !== 'neural') return;
+
+  try {
+    const seg = await state.bodyPixModel.segmentPersonParts(video, {
+      flipHorizontal:false,
+      internalResolution:'medium',
+      segmentationThreshold:.55,
+      maxDetections:3,
+      scoreThreshold:.3,
+      nmsRadius:20
+    });
+    lastSegData = seg;
+    drawNeuralOverlay(seg);
+  } catch(e) { /* silently skip bad frames */ }
+
+  if(neuralRunning && state.filter === 'neural'){
+    // throttle to ~15 fps for stability
+    neuralAnimFrame = setTimeout(()=> requestAnimationFrame(runNeuralLoop), 66);
+  }
+}
+
 function drawNeuralOverlay(seg){
-  const ctx=neuralCanvas.getContext('2d');
-  const W=neuralCanvas.width, H=neuralCanvas.height;
+  const ctx = neuralCanvas.getContext('2d');
+  const W   = neuralCanvas.width;
+  const H   = neuralCanvas.height;
   ctx.clearRect(0,0,W,H);
-  const {data,width:sw,height:sh}=seg;
-  if(!data||!data.length) return;
-  const img=ctx.createImageData(W,H), px=img.data;
-  const scx=W/sw, scy=H/sh;
-  for(let r=0;r<sh;r++) for(let c=0;c<sw;c++){
-    const id=data[r*sw+c]; if(id<0) continue;
-    const col=PART_COLORS[id]||[255,255,255];
-    const x0=Math.floor(c*scx),y0=Math.floor(r*scy),x1=Math.floor((c+1)*scx),y1=Math.floor((r+1)*scy);
-    for(let cy=y0;cy<y1;cy++) for(let cx=x0;cx<x1;cx++){
-      const i=(cy*W+cx)*4;
-      px[i]=col[0]; px[i+1]=col[1]; px[i+2]=col[2]; px[i+3]=155;
+
+  const { data, width:sw, height:sh } = seg;
+  if(!data || !data.length) return;
+
+  // --- rasterise part mask ---
+  const img = ctx.createImageData(W, H);
+  const px  = img.data;
+  const scx = W / sw;
+  const scy = H / sh;
+
+  // count detected parts for HUD
+  const detectedParts = new Set();
+
+  for(let r=0; r<sh; r++){
+    for(let c=0; c<sw; c++){
+      const id = data[r*sw + c];
+      if(id < 0) continue;
+      detectedParts.add(id);
+      const col = PART_COLORS[id] || [255,255,255];
+      const x0 = Math.floor(c*scx),  y0 = Math.floor(r*scy);
+      const x1 = Math.floor((c+1)*scx), y1 = Math.floor((r+1)*scy);
+      for(let cy=y0; cy<y1; cy++){
+        for(let cx=x0; cx<x1; cx++){
+          const i = (cy*W + cx) * 4;
+          px[i]   = col[0];
+          px[i+1] = col[1];
+          px[i+2] = col[2];
+          px[i+3] = 160;
+        }
+      }
     }
   }
-  ctx.putImageData(img,0,0);
-  ctx.font='8px Share Tech Mono'; ctx.fillStyle='rgba(0,255,65,.8)';
-  ctx.fillText(`SEGMENTS: ${new Set(Array.from(data).filter(x=>x>=0)).size} PARTS`,20,H-100);
-}
+  ctx.putImageData(img, 0, 0);
 
-// ────────────────────────────────────────────────────
-//  FILTER SWITCHING
-// ────────────────────────────────────────────────────
-function switchFilter(name){
-  const prev=state.filter; state.filter=name;
-  if(prev==='matrix'){ cancelAnimationFrame(state.matrixAnimId); matrixCanvas.style.display='none'; }
-  if(prev==='neural'){ neuralRunning=false; neuralCanvas.style.display='none'; }
+  // --- edge glow pass (draw mask outline) ---
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.filter = 'blur(3px)';
+  ctx.drawImage(neuralCanvas, 0, 0);
+  ctx.filter = 'none';
+  ctx.restore();
 
-  shaderMesh.material=shaderMaterials[name];
-  document.getElementById('filter-name').textContent=FILTER_NAMES[name]||name.toUpperCase();
+  // --- HUD info ---
+  const nParts  = detectedParts.size;
+  const confPct = Math.min(100, Math.round((nParts / 24) * 100 + 30));
+  document.getElementById('confidence-fill').style.width = confPct + '%';
 
-  if(name==='matrix'){
-    matrixCanvas.style.display='block';
-    resizeMatrix();
-    const ctx=state.matrixCtx;
-    ctx.fillStyle='#000'; ctx.fillRect(0,0,matrixCanvas.width,matrixCanvas.height);
-    drawMatrix();
-  }
+  ctx.font = '9px Share Tech Mono';
+  ctx.fillStyle = 'rgba(0,255,65,.85)';
+  ctx.fillText(`PARTS: ${nParts}  CONF: ${confPct}%`, 20, H - 98);
 
-  if(name==='neural'){
-    neuralCanvas.width=window.innerWidth; neuralCanvas.height=window.innerHeight;
-    neuralCanvas.style.display='block';
-    const go=()=>{ neuralRunning=true; runNeuralLoop(); };
-    if(state.bodyPixReady) go();
-    else if(!state.bodyPixLoading) loadBodyPix().then(go);
-    else { const w=setInterval(()=>{ if(state.bodyPixReady){clearInterval(w);if(state.filter==='neural')go();} },500); }
-  }
-
-  const extras={
-    green:'SOBEL EDGE DETECTION', thermal:'INFRARED FALSE COLOR',
-    glitch:'SIGNAL CORRUPT · 10 EFFECTS', neural:'BODYPIX SEGMENTATION', matrix:'PHOTON CASCADE'
-  };
-  document.getElementById('mode-extra').textContent=extras[name]||'';
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter===name));
-}
-
-// ────────────────────────────────────────────────────
-//  BOOT
-// ────────────────────────────────────────────────────
-document.getElementById('btn-start').addEventListener('click', async()=>{
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}, audio:false
+  // label the most prominent parts
+  const uniqueParts = Array.from(detectedParts);
+  if(uniqueParts.length > 0){
+    ctx.font = '8px Share Tech Mono';
+    const partCenters = computePartCenters(data, sw, sh, scx, scy, uniqueParts.slice(0,6));
+    partCenters.forEach(({id, cx, cy})=>{
+      const name = (PART_NAMES[id] || `PART_${id}`).replace(/_/g,' ');
+      const c = PART_COLORS[id] || [255,255,255];
+      ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.9)`;
+      ctx.fillText(name, cx+4, cy-4);
+      // crosshair dot
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},1.0)`;
+      ctx.fill();
     });
-    video.srcObject=stream; await video.play();
-    document.getElementById('start-screen').style.display='none';
+  }
+}
+
+function computePartCenters(data, sw, sh, scx, scy, partIds){
+  const acc = {};
+  partIds.forEach(id => { acc[id]={sx:0,sy:0,n:0}; });
+  for(let r=0; r<sh; r++){
+    for(let c=0; c<sw; c++){
+      const id = data[r*sw+c];
+      if(acc[id] !== undefined){
+        acc[id].sx += c;
+        acc[id].sy += r;
+        acc[id].n++;
+      }
+    }
+  }
+  return partIds.filter(id=>acc[id].n>0).map(id=>({
+    id,
+    cx: Math.floor((acc[id].sx / acc[id].n) * scx),
+    cy: Math.floor((acc[id].sy / acc[id].n) * scy)
+  }));
+}
+
+// ════════════════════════════════════════════════════
+//  FILTER SWITCHING
+// ════════════════════════════════════════════════════
+function switchFilter(name){
+  const prev = state.filter;
+  state.filter = name;
+
+  // tear down previous
+  if(prev === 'neural'){
+    neuralRunning = false;
+    clearTimeout(neuralAnimFrame);
+    neuralCanvas.style.display = 'none';
+    document.getElementById('confidence-bar-wrap').classList.remove('visible');
+  }
+  if(prev === 'thermal'){
+    document.getElementById('thermal-legend').classList.remove('visible');
+  }
+
+  shaderMesh.material = shaderMaterials[name];
+  document.getElementById('filter-name').textContent  = FILTER_NAMES[name]  || name.toUpperCase();
+  document.getElementById('mode-extra').textContent   = FILTER_EXTRAS[name] || '';
+
+  // set up new
+  if(name === 'neural'){
+    neuralCanvas.width  = window.innerWidth;
+    neuralCanvas.height = window.innerHeight;
+    neuralCanvas.style.display = 'block';
+    document.getElementById('confidence-bar-wrap').classList.add('visible');
+
+    const startNeural = () => { neuralRunning = true; runNeuralLoop(); };
+    if(state.bodyPixReady){
+      startNeural();
+    } else if(!state.bodyPixLoading){
+      loadBodyPix().then(()=>{ if(state.filter==='neural') startNeural(); });
+    } else {
+      const poll = setInterval(()=>{
+        if(state.bodyPixReady){ clearInterval(poll); if(state.filter==='neural') startNeural(); }
+      }, 500);
+    }
+  }
+
+  if(name === 'thermal'){
+    document.getElementById('thermal-legend').classList.add('visible');
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.filter === name);
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════════
+document.getElementById('btn-start').addEventListener('click', async()=>{
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} },
+      audio:false
+    });
+    video.srcObject = stream;
+    await video.play();
+
+    document.getElementById('start-screen').style.display = 'none';
     document.getElementById('app').classList.add('active');
-    document.getElementById('res-info').textContent=`RES: ${video.videoWidth||'?'}×${video.videoHeight||'?'}`;
-    setupThree(); setupMatrix();
-    document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>switchFilter(b.dataset.filter)));
+    document.getElementById('res-info').textContent = `RES: ${video.videoWidth||'?'}×${video.videoHeight||'?'}`;
+
+    setupThree();
+
+    document.querySelectorAll('.filter-btn').forEach(b=>{
+      b.addEventListener('click', ()=> switchFilter(b.dataset.filter));
+    });
+
+    // pre-load BodyPix silently
     loadBodyPix();
-    state.lastFpsTime=performance.now();
+
+    // FPS counter
+    state.lastFpsTime = performance.now();
     setInterval(()=>{
-      const now=performance.now(), fps=Math.round(state.frameCount/((now-state.lastFpsTime)/1000));
-      state.frameCount=0; state.lastFpsTime=now;
-      document.getElementById('fps-counter').textContent=`FPS: ${fps}`;
-    },500);
-  }catch(e){ alert('Camera access denied. Use HTTPS and allow camera.'); }
+      const now = performance.now();
+      const fps = Math.round(state.frameCount / ((now - state.lastFpsTime) / 1000));
+      state.frameCount = 0; state.lastFpsTime = now;
+      document.getElementById('fps-counter').textContent = `FPS: ${fps}`;
+    }, 500);
+
+  } catch(e){
+    alert('Camera access denied. Use HTTPS and allow camera.');
+  }
 });
 
-window.addEventListener('resize',()=>{
+// ── RESIZE ──
+window.addEventListener('resize', ()=>{
   if(!renderer) return;
-  const W=window.innerWidth, H=window.innerHeight;
-  renderer.setSize(W,H);
-  const rv=new THREE.Vector2(W,H);
-  for(const m of Object.values(shaderMaterials)) m.uniforms.res.value=rv.clone();
-  neuralCanvas.width=W; neuralCanvas.height=H;
-  resizeMatrix();
+  const W = window.innerWidth, H = window.innerHeight;
+  renderer.setSize(W, H);
+  const rv = new THREE.Vector2(W, H);
+  for(const m of Object.values(shaderMaterials)) m.uniforms.res.value = rv.clone();
+  neuralCanvas.width = W; neuralCanvas.height = H;
 });
 
-window.addEventListener('keydown',e=>{
-  const map={'1':'green','2':'thermal','3':'glitch','4':'neural','5':'matrix'};
+// ── KEYBOARD SHORTCUTS ──
+window.addEventListener('keydown', e=>{
+  const map = {'1':'green','2':'thermal','3':'neural'};
   if(map[e.key]) switchFilter(map[e.key]);
 });
 </script>

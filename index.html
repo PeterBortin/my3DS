@@ -8,6 +8,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
+<!-- jsPDF for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 :root{--green:#00ff41;--green-glow:rgba(0,255,65,.3);}
@@ -52,6 +54,13 @@ video{display:none;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 #obj-count{position:absolute;bottom:75px;right:20px;font-size:8px;letter-spacing:2px;color:#00ff4188;display:none;}
 
+/* INTENSITY — теперь в кадре (overlay), а не в рамке */
+#intensity-overlay{
+position:absolute;inset:0;pointer-events:none;z-index:8;
+/* управляется через opacity/mix-blend */
+opacity:0;transition:opacity .4s;
+}
+
 /* BOTTOM */
 #bottom-chrome{position:absolute;bottom:0;left:0;right:0;z-index:20;pointer-events:all;}
 #mode-controls{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 12px 2px;background:rgba(0,0,0,.78);min-height:48px;overflow-x:auto;}
@@ -71,6 +80,100 @@ video{display:none;}
 /* scan sweep */
 #scan-sweep-line{position:fixed;left:0;right:0;height:3px;pointer-events:none;z-index:50;background:linear-gradient(transparent,rgba(0,255,65,.85),transparent);display:none;}
 @keyframes scan-sweep{0%{top:-4px}100%{top:100%}}
+
+/* ── TERMINAL MODAL ─────────────────────────────── */
+#terminal-modal{
+position:fixed;inset:0;z-index:300;
+display:none;flex-direction:column;
+background:rgba(0,0,0,.92);
+backdrop-filter:blur(4px);
+animation:termOpen .25s ease;
+}
+#terminal-modal.active{display:flex;}
+@keyframes termOpen{
+from{opacity:0;transform:translateY(20px)}
+to{opacity:1;transform:translateY(0)}
+}
+#term-header{
+display:flex;align-items:center;justify-content:space-between;
+padding:10px 16px;
+border-bottom:1px solid rgba(0,255,65,.25);
+background:rgba(0,255,65,.04);
+}
+#term-title{font-family:‘Orbitron’,monospace;font-size:10px;letter-spacing:4px;color:var(–green);}
+.term-hdr-meta{font-size:8px;letter-spacing:2px;color:#00ff4166;}
+#term-close{
+padding:6px 14px;background:transparent;
+border:1px solid rgba(0,255,65,.4);
+color:var(–green);font-family:‘Share Tech Mono’,monospace;font-size:8px;
+letter-spacing:2px;cursor:pointer;
+transition:background .2s;
+}
+#term-close:hover{background:rgba(0,255,65,.15);}
+#term-body{
+flex:1;overflow-y:auto;padding:14px 16px;
+display:flex;flex-direction:column;gap:12px;
+}
+#term-body::-webkit-scrollbar{width:4px;}
+#term-body::-webkit-scrollbar-track{background:#000;}
+#term-body::-webkit-scrollbar-thumb{background:rgba(0,255,65,.3);}
+
+/* photo strip */
+#term-photo{
+width:100%;border:1px solid rgba(0,255,65,.3);
+position:relative;flex-shrink:0;
+}
+#term-photo canvas{width:100%;display:block;}
+#term-photo-label{
+position:absolute;bottom:6px;right:8px;
+font-size:7px;letter-spacing:2px;color:rgba(0,255,65,.55);
+}
+
+/* detection table */
+.det-table{width:100%;border-collapse:collapse;font-size:9px;}
+.det-table th{text-align:left;padding:5px 8px;color:#00ff4166;border-bottom:1px solid rgba(0,255,65,.12);letter-spacing:2px;font-size:7px;}
+.det-table td{padding:5px 8px;border-bottom:1px solid rgba(0,255,65,.06);color:rgba(0,255,65,.85);}
+.det-table tr:first-child td{border-top:1px solid rgba(0,255,65,.08);}
+.conf-bar{display:inline-block;height:4px;background:var(–green);box-shadow:0 0 4px var(–green);vertical-align:middle;margin-right:6px;border-radius:1px;}
+.conf-val{vertical-align:middle;}
+.det-idx{color:#00ff4133;font-size:8px;}
+
+/* summary box */
+#term-summary{
+font-size:8px;letter-spacing:1.5px;line-height:2;
+color:#00ff4166;border:1px solid rgba(0,255,65,.12);
+padding:10px 12px;background:rgba(0,255,65,.025);
+}
+#term-summary b{color:rgba(0,255,65,.85);}
+
+/* actions */
+#term-actions{
+display:flex;gap:10px;padding:10px 16px 14px;
+border-top:1px solid rgba(0,255,65,.1);
+background:rgba(0,0,0,.6);
+flex-wrap:wrap;
+}
+.term-btn{
+flex:1;min-width:100px;padding:10px;
+background:transparent;border:1px solid rgba(0,255,65,.35);
+color:rgba(0,255,65,.7);font-family:‘Share Tech Mono’,monospace;
+font-size:8px;letter-spacing:2px;cursor:pointer;
+text-transform:uppercase;transition:all .2s;
+}
+.term-btn:hover{background:rgba(0,255,65,.12);color:var(–green);border-color:var(–green);}
+.term-btn.primary{border-color:var(–green);color:var(–green);background:rgba(0,255,65,.08);}
+.term-btn.primary:hover{background:rgba(0,255,65,.2);}
+
+/* ── BOX ANIMATION KEYFRAMES ─── */
+@keyframes boxPulse{
+0%,100%{opacity:.5}
+50%{opacity:1}
+}
+@keyframes cornerPop{
+0%{transform:scale(.7);opacity:0}
+60%{transform:scale(1.12)}
+100%{transform:scale(1);opacity:1}
+}
 </style>
 
 </head>
@@ -114,18 +217,50 @@ video{display:none;}
   </div>
 </div>
 
+<!-- TERMINAL MODAL -->
+
+<div id="terminal-modal">
+  <div id="term-header">
+    <div id="term-title">◈ OBJECT ANALYSIS TERMINAL</div>
+    <div class="term-hdr-meta" id="term-ts">--</div>
+    <button id="term-close">✕ CLOSE</button>
+  </div>
+  <div id="term-body">
+    <div id="term-photo"><canvas id="snap-canvas"></canvas><div id="term-photo-label">VISION SUITE · SNAPSHOT</div></div>
+    <table class="det-table" id="det-table">
+      <thead><tr><th>#</th><th>OBJECT</th><th>CONFIDENCE</th><th>POSITION (px)</th><th>SIZE (px)</th></tr></thead>
+      <tbody id="det-tbody"></tbody>
+    </table>
+    <div id="term-summary"></div>
+  </div>
+  <div id="term-actions">
+    <button class="term-btn" id="btn-copy-txt">⬡ COPY TEXT REPORT</button>
+    <button class="term-btn primary" id="btn-export-pdf">⬡ EXPORT PDF REPORT</button>
+  </div>
+</div>
+
 <script>
 'use strict';
 
 const S={
   frameCount:0, lastFpsTime:0,
   cocoModel:null, cocoLoading:false, cocoReady:false,
-  edgeTint:0,
+  edgeTintState:0,
+  edgeIntState:0,  /* 0=normal(frame low / scene high), 1=med, 2=high(frame high / scene low) */
   liveDetections:[],
   detRunning:false,
   scanActive:false,
   scanDetections:[],
+  scanSnapshot:null, /* ImageData of snapshot */
+  scanTime:null,
 };
+
+/* edge intensity levels: [shaderEdgeInt, frameLineWidth, frameAlpha, cornerGlow] */
+const INT_LEVELS=[
+  {edge:4.5, lw:1.0, alpha:0.50, cg:5,  label:'INT·LOW'},
+  {edge:7.0, lw:1.5, alpha:0.72, cg:10, label:'INT·MED'},
+  {edge:12., lw:2.5, alpha:0.95, cg:18, label:'INT·HIGH'},
+];
 
 const video=document.getElementById('v');
 const threeCanvas=document.getElementById('three-canvas');
@@ -161,7 +296,8 @@ void main(){
   float e=sqrt(gx*gx+gy*gy);
   float sc=sin(vUv.y*res.y*3.14159)*.04+.96;
   float inside=insideAny();
-  float effInt=mix(edgeInt,edgeInt*0.06,inside);
+  /* SWAP: inside box → dim edge intensity (контраст рамки выше) */
+  float effInt=mix(edgeInt*0.06, edgeInt, inside);
   float bright=e*effInt*sc;
   vec3 col;
   if(tint<1.)      col=mix(vec3(0.,bright,bright*.09),vec3(bright),tint);
@@ -184,7 +320,7 @@ function setupThree(){
   mat=new THREE.ShaderMaterial({
     uniforms:{
       t:{value:vt},res:{value:new THREE.Vector2(window.innerWidth,window.innerHeight)},
-      edgeInt:{value:4.5},tint:{value:0.0},numBoxes:{value:0},boxes:{value:boxesUniform}
+      edgeInt:{value:INT_LEVELS[0].edge},tint:{value:0.0},numBoxes:{value:0},boxes:{value:boxesUniform}
     },
     vertexShader:VERT,fragmentShader:FRAG
   });
@@ -228,7 +364,7 @@ async function loadCoco(){
   }
 }
 
-// ── REALTIME LOOP (~10 fps) ───────────────────────────
+// ── REALTIME LOOP ─────────────────────────────────────
 function startRealtimeLoop(){
   if(S.detRunning)return;
   S.detRunning=true;
@@ -253,6 +389,7 @@ function toggleScan(){
   if(S.scanActive){
     S.scanActive=false;
     S.scanDetections=[];
+    S.scanSnapshot=null;
     pushBoxes([]);
     drawBoxes([],false);
     document.getElementById('obj-count').style.display='none';
@@ -260,11 +397,50 @@ function toggleScan(){
   } else {
     S.scanActive=true;
     S.scanDetections=[...S.liveDetections];
+    S.scanTime=new Date();
+    /* take snapshot of current frame */
+    takeSnapshot();
     pushBoxes(S.scanDetections);
     drawBoxes(S.scanDetections,true);
     sweepFX();
     updateScanBtn(true);
+    /* open terminal */
+    openTerminal(S.scanDetections,S.scanTime);
   }
+}
+
+function takeSnapshot(){
+  const snap=document.getElementById('snap-canvas');
+  snap.width=video.videoWidth||window.innerWidth;
+  snap.height=video.videoHeight||window.innerHeight;
+  const ctx=snap.getContext('2d');
+  ctx.drawImage(video,0,0);
+  /* draw boxes on snapshot */
+  const W=snap.width,H=snap.height;
+  const dets=S.scanDetections;
+  dets.forEach(det=>{
+    const [bx,by,bw,bh]=det.bbox;
+    const score=Math.round(det.score*100);
+    const label=(det.class||'OBJ').toUpperCase();
+    ctx.shadowBlur=10;
+    ctx.shadowColor='rgba(0,255,65,.8)';
+    ctx.strokeStyle='rgba(0,255,65,.9)';
+    ctx.lineWidth=2;
+    ctx.strokeRect(bx,by,bw,bh);
+    const tk=Math.min(bw,bh,16);
+    ctx.lineWidth=2.5;
+    [[bx,by,tk,0,0,tk],[bx+bw,by,-tk,0,0,tk],[bx,by+bh,tk,0,0,-tk],[bx+bw,by+bh,-tk,0,0,-tk]]
+      .forEach(([ox,oy,dx1,dy1,dx2,dy2])=>{
+        ctx.beginPath();ctx.moveTo(ox+dx1,oy+dy1);ctx.lineTo(ox,oy);ctx.lineTo(ox+dx2,oy+dy2);ctx.stroke();
+      });
+    ctx.shadowBlur=0;
+    const fs=11;ctx.font=`bold ${fs}px 'Share Tech Mono',monospace`;
+    const tw=ctx.measureText(`${label} ${score}%`).width+10;
+    ctx.fillStyle='rgba(0,8,0,.85)';
+    ctx.fillRect(bx-1,by-fs-9,tw,fs+9);
+    ctx.fillStyle='rgba(0,255,65,.95)';
+    ctx.fillText(`${label} ${score}%`,bx+4,by-3);
+  });
 }
 
 function sweepFX(){
@@ -283,7 +459,11 @@ function updateScanBtn(on){
   scanBtn.querySelector('.cl').textContent=on?'RESET':'SCAN';
 }
 
-// ── DRAW BOXES ────────────────────────────────────────
+// ── DRAW BOXES (animated) ────────────────────────────
+/* Store per-box animation state */
+const boxAnim={};
+let lastAnimTime=0;
+
 function drawBoxes(dets,frozen){
   const ctx=detCanvas.getContext('2d');
   const W=detCanvas.width,H=detCanvas.height;
@@ -294,31 +474,62 @@ function drawBoxes(dets,frozen){
   }
   const vW=video.videoWidth||W,vH=video.videoHeight||H;
   const sx=W/vW,sy=H/vH;
-  const alpha=frozen?0.92:0.5;
-  const lw=frozen?1.5:1.0;
+  const lvl=INT_LEVELS[S.edgeIntState];
+  const baseAlpha=lvl.alpha;
+  const lw=lvl.lw;
+  const cglow=lvl.cg;
+  const now=performance.now();
 
-  dets.forEach(det=>{
+  dets.forEach((det,i)=>{
     const [bx,by,bw,bh]=det.bbox;
     const x=bx*sx,y=by*sy,w=bw*sx,h=bh*sy;
     const score=Math.round(det.score*100);
     const label=(det.class||'OBJ').toUpperCase();
 
-    // main rect
-    ctx.shadowBlur=frozen?14:5;
-    ctx.shadowColor=`rgba(0,255,65,${alpha*.7})`;
+    /* Smooth pulsing alpha for live boxes */
+    let alpha=baseAlpha;
+    if(!frozen){
+      const phase=(now/1200+i*0.37)%(Math.PI*2);
+      alpha=baseAlpha*0.75+baseAlpha*0.25*Math.sin(phase);
+    }
+
+    /* Animated corner grow-in for frozen scan */
+    if(frozen){
+      if(!boxAnim[i]||boxAnim[i].frozen!==true){
+        boxAnim[i]={start:now,frozen:true};
+      }
+      const t=Math.min(1,(now-boxAnim[i].start)/350);
+      /* ease out quint */
+      const ease=1-Math.pow(1-t,5);
+      ctx.save();
+      /* scale from center of box */
+      const cx=x+w/2,cy=y+h/2;
+      ctx.translate(cx,cy);
+      ctx.scale(0.5+0.5*ease,0.5+0.5*ease);
+      ctx.translate(-cx,-cy);
+      ctx.globalAlpha=ease;
+    }
+
+    /* main rect — dashed for live, solid for frozen */
+    ctx.shadowBlur=frozen?cglow:cglow*0.5;
+    ctx.shadowColor=`rgba(0,255,65,${alpha*.8})`;
     ctx.strokeStyle=`rgba(0,255,65,${alpha})`;
     ctx.lineWidth=lw;
+    if(!frozen){ctx.setLineDash([6,4]);}else{ctx.setLineDash([]);}
     ctx.strokeRect(x,y,w,h);
+    ctx.setLineDash([]);
 
-    // corner ticks
-    const tk=Math.min(w,h,18);
-    ctx.lineWidth=frozen?2:1.5;ctx.shadowBlur=frozen?18:8;
+    /* corner ticks — larger and brighter */
+    const tk=Math.min(w,h,22);
+    ctx.lineWidth=frozen?lw+1:lw+0.5;
+    ctx.shadowBlur=frozen?cglow*1.4:cglow*0.7;
+    ctx.shadowColor=`rgba(0,255,65,${alpha})`;
     [[x,y,tk,0,0,tk],[x+w,y,-tk,0,0,tk],[x,y+h,tk,0,0,-tk],[x+w,y+h,-tk,0,0,-tk]]
       .forEach(([ox,oy,dx1,dy1,dx2,dy2])=>{
         ctx.beginPath();ctx.moveTo(ox+dx1,oy+dy1);ctx.lineTo(ox,oy);ctx.lineTo(ox+dx2,oy+dy2);ctx.stroke();
       });
 
-    // label
+    /* label */
     ctx.shadowBlur=0;
     const fs=9;ctx.font=`${fs}px 'Share Tech Mono',monospace`;
     const tw=ctx.measureText(`${label} ${score}%`).width+10;
@@ -328,21 +539,248 @@ function drawBoxes(dets,frozen){
     ctx.shadowBlur=frozen?8:4;ctx.shadowColor='#00ff41';
     ctx.fillText(`${label} ${score}%`,x+4,y-4);
     ctx.shadowBlur=0;
+
+    if(frozen){ctx.restore();}
   });
+
+  /* keep animating for grow-in */
+  const allDone=Object.values(boxAnim).every(a=>performance.now()-a.start>400);
+  if(frozen&&!allDone){requestAnimationFrame(()=>drawBoxes(dets,frozen));}
 
   const oc=document.getElementById('obj-count');
   oc.textContent=`OBJECTS: ${dets.length}`;
   oc.style.display='block';
 }
 
+/* smooth live box repaint */
+function startBoxAnimLoop(){
+  (function loop(){
+    if(!S.scanActive&&S.liveDetections.length){
+      drawBoxes(S.liveDetections,false);
+    }
+    requestAnimationFrame(loop);
+  })();
+}
+
+// ── TERMINAL ──────────────────────────────────────────
+function openTerminal(dets,ts){
+  const modal=document.getElementById('terminal-modal');
+  modal.classList.add('active');
+
+  /* timestamp */
+  const pad=n=>String(n).padStart(2,'0');
+  const tsStr=`${ts.getFullYear()}-${pad(ts.getMonth()+1)}-${pad(ts.getDate())} ${pad(ts.getHours())}:${pad(ts.getMinutes())}:${pad(ts.getSeconds())}`;
+  document.getElementById('term-ts').textContent=tsStr;
+
+  /* table rows */
+  const tbody=document.getElementById('det-tbody');
+  tbody.innerHTML='';
+  dets.forEach((det,i)=>{
+    const [bx,by,bw,bh]=det.bbox;
+    const score=Math.round(det.score*100);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="det-idx">${String(i+1).padStart(2,'0')}</td>
+      <td>${(det.class||'UNKNOWN').toUpperCase()}</td>
+      <td><span class="conf-bar" style="width:${score}px;max-width:80px"></span><span class="conf-val">${score}%</span></td>
+      <td>${Math.round(bx)}, ${Math.round(by)}</td>
+      <td>${Math.round(bw)}×${Math.round(bh)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  /* summary */
+  const classes={};
+  dets.forEach(d=>{const c=(d.class||'unknown').toLowerCase();classes[c]=(classes[c]||0)+1;});
+  const classStr=Object.entries(classes).map(([k,v])=>`<b>${v}×${k.toUpperCase()}</b>`).join(' · ');
+  const avgConf=dets.length?Math.round(dets.reduce((a,d)=>a+d.score,0)/dets.length*100):0;
+  document.getElementById('term-summary').innerHTML=
+    `SCAN TIME: <b>${tsStr}</b><br>
+    TOTAL OBJECTS: <b>${dets.length}</b><br>
+    CLASSES DETECTED: ${classStr||'<b>NONE</b>'}<br>
+    AVG CONFIDENCE: <b>${avgConf}%</b><br>
+    RESOLUTION: <b>${video.videoWidth||'?'}×${video.videoHeight||'?'}</b>`;
+}
+
+document.getElementById('term-close').addEventListener('click',()=>{
+  document.getElementById('terminal-modal').classList.remove('active');
+  /* release scan */
+  S.scanActive=false;
+  S.scanDetections=[];
+  pushBoxes([]);
+  drawBoxes([],false);
+  document.getElementById('obj-count').style.display='none';
+  updateScanBtn(false);
+});
+
+// ── COPY TEXT REPORT ──────────────────────────────────
+document.getElementById('btn-copy-txt').addEventListener('click',()=>{
+  const dets=S.scanDetections;
+  const ts=S.scanTime||new Date();
+  const lines=[
+    '╔══════════════════════════════════════╗',
+    '║      VISION SUITE · SCAN REPORT      ║',
+    '╚══════════════════════════════════════╝',
+    `TIME: ${ts.toISOString()}`,
+    `OBJECTS: ${dets.length}`,
+    `RES: ${video.videoWidth||'?'}×${video.videoHeight||'?'}`,
+    '──────────────────────────────────────',
+    ...dets.map((d,i)=>{
+      const [bx,by,bw,bh]=d.bbox;
+      return `[${String(i+1).padStart(2,'0')}] ${(d.class||'?').toUpperCase().padEnd(16)} ${Math.round(d.score*100)}%  @ ${Math.round(bx)},${Math.round(by)}  ${Math.round(bw)}×${Math.round(bh)}px`;
+    }),
+    '──────────────────────────────────────',
+    'GENERATED BY VISION SUITE',
+  ];
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    const btn=document.getElementById('btn-copy-txt');
+    btn.textContent='✓ COPIED';
+    setTimeout(()=>{btn.textContent='⬡ COPY TEXT REPORT';},2000);
+  });
+});
+
+// ── PDF EXPORT ────────────────────────────────────────
+document.getElementById('btn-export-pdf').addEventListener('click',async()=>{
+  const btn=document.getElementById('btn-export-pdf');
+  btn.textContent='⏳ GENERATING...';btn.disabled=true;
+
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W=210,H=297;
+    const mg=14;
+
+    /* --- background --- */
+    doc.setFillColor(0,0,0);
+    doc.rect(0,0,W,H,'F');
+
+    /* --- header bar --- */
+    doc.setFillColor(0,20,0);
+    doc.rect(0,0,W,20,'F');
+    doc.setDrawColor(0,255,65);doc.setLineWidth(0.3);
+    doc.line(0,20,W,20);
+
+    /* --- title --- */
+    doc.setTextColor(0,255,65);
+    doc.setFont('courier','bold');
+    doc.setFontSize(14);
+    doc.text('VISION SUITE',mg,13);
+    doc.setFontSize(8);
+    doc.setFont('courier','normal');
+    doc.setTextColor(0,180,46);
+    doc.text('OBJECT ANALYSIS REPORT',mg+45,13);
+
+    /* timestamp right */
+    const ts=S.scanTime||new Date();
+    const pad=n=>String(n).padStart(2,'0');
+    const tsStr=`${ts.getFullYear()}-${pad(ts.getMonth()+1)}-${pad(ts.getDate())} ${pad(ts.getHours())}:${pad(ts.getMinutes())}:${pad(ts.getSeconds())}`;
+    doc.setFontSize(7);doc.setTextColor(0,120,30);
+    doc.text(tsStr,W-mg,13,{align:'right'});
+
+    /* --- snapshot --- */
+    const snap=document.getElementById('snap-canvas');
+    let imgY=24;
+    if(snap.width>0&&snap.height>0){
+      const imgData=snap.toDataURL('image/jpeg',0.85);
+      const ar=snap.height/snap.width;
+      const imgW=W-mg*2;
+      const imgH=Math.min(imgW*ar,80);
+      doc.addImage(imgData,'JPEG',mg,imgY,imgW,imgH);
+      /* border */
+      doc.setDrawColor(0,255,65);doc.setLineWidth(0.3);
+      doc.rect(mg,imgY,imgW,imgH,'S');
+      imgY+=imgH+4;
+    }
+
+    /* --- section: detections --- */
+    doc.setFontSize(8);doc.setTextColor(0,255,65);doc.setFont('courier','bold');
+    doc.text('DETECTED OBJECTS',mg,imgY+5);
+    doc.setDrawColor(0,80,20);doc.setLineWidth(0.2);
+    doc.line(mg,imgY+7,W-mg,imgY+7);
+    imgY+=10;
+
+    /* table header */
+    const cols=[12,42,22,30,30];
+    const headers=['#','OBJECT','CONF','POSITION','SIZE'];
+    doc.setFontSize(6.5);doc.setTextColor(0,150,38);doc.setFont('courier','bold');
+    let cx=mg;
+    headers.forEach((h,i)=>{doc.text(h,cx,imgY);cx+=cols[i];});
+    imgY+=4;
+    doc.setDrawColor(0,60,15);doc.setLineWidth(0.15);
+    doc.line(mg,imgY,W-mg,imgY);
+    imgY+=3;
+
+    /* rows */
+    doc.setFont('courier','normal');doc.setFontSize(7);
+    const dets=S.scanDetections;
+    dets.forEach((det,i)=>{
+      const [bx,by,bw,bh]=det.bbox;
+      const row=[
+        String(i+1).padStart(2,'0'),
+        (det.class||'UNKNOWN').toUpperCase(),
+        `${Math.round(det.score*100)}%`,
+        `${Math.round(bx)},${Math.round(by)}`,
+        `${Math.round(bw)}x${Math.round(bh)}`,
+      ];
+      /* alternating row bg */
+      if(i%2===0){doc.setFillColor(0,8,0);doc.rect(mg,imgY-3,W-mg*2,6,'F');}
+      doc.setTextColor(0,200,50);
+      cx=mg;
+      row.forEach((v,j)=>{doc.text(v,cx,imgY);cx+=cols[j];});
+      imgY+=7;
+      if(imgY>H-30){doc.addPage();doc.setFillColor(0,0,0);doc.rect(0,0,W,H,'F');imgY=20;}
+    });
+
+    /* separator */
+    doc.setDrawColor(0,60,15);doc.setLineWidth(0.2);
+    doc.line(mg,imgY+2,W-mg,imgY+2);
+    imgY+=8;
+
+    /* --- summary --- */
+    doc.setFontSize(8);doc.setTextColor(0,255,65);doc.setFont('courier','bold');
+    doc.text('SUMMARY',mg,imgY);
+    imgY+=6;
+    doc.setFont('courier','normal');doc.setFontSize(7);doc.setTextColor(0,180,46);
+
+    const classes={};
+    dets.forEach(d=>{const c=(d.class||'unknown').toLowerCase();classes[c]=(classes[c]||0)+1;});
+    const classStr=Object.entries(classes).map(([k,v])=>`${v}x${k.toUpperCase()}`).join('  ');
+    const avgConf=dets.length?Math.round(dets.reduce((a,d)=>a+d.score,0)/dets.length*100):0;
+
+    const sumLines=[
+      `TOTAL OBJECTS:     ${dets.length}`,
+      `CLASSES:           ${classStr||'NONE'}`,
+      `AVG CONFIDENCE:    ${avgConf}%`,
+      `RESOLUTION:        ${video.videoWidth||'?'}x${video.videoHeight||'?'}`,
+      `SCAN TIME:         ${tsStr}`,
+    ];
+    sumLines.forEach(l=>{doc.text(l,mg,imgY);imgY+=5;});
+
+    /* --- footer --- */
+    doc.setDrawColor(0,255,65);doc.setLineWidth(0.2);
+    doc.line(0,H-10,W,H-10);
+    doc.setFontSize(6);doc.setTextColor(0,100,25);
+    doc.text('VISION SUITE · GREEN EDGE VISION · COCO-SSD DETECTION',W/2,H-5,{align:'center'});
+
+    /* save */
+    doc.save(`vision-suite-scan-${Date.now()}.pdf`);
+  }catch(err){
+    console.error('PDF error:',err);
+    alert('PDF generation failed: '+err.message);
+  }
+
+  btn.textContent='⬡ EXPORT PDF REPORT';btn.disabled=false;
+});
+
 // ── CONTROLS ─────────────────────────────────────────
 let edgeTintState=0;
+let intBtn=null;
 
 function buildControls(){
   const wrap=document.getElementById('mode-controls');
   wrap.innerHTML='';
 
-  // TINT
+  /* TINT */
   const btnTint=makeBtn('🟢','TINT',()=>{
     edgeTintState=(edgeTintState+1)%3;
     mat.uniforms.tint.value=edgeTintState;
@@ -352,10 +790,25 @@ function buildControls(){
   });
   wrap.appendChild(btnTint);
 
-  const sep=document.createElement('div');sep.className='ctrl-sep';
-  wrap.appendChild(sep);
+  const sep1=document.createElement('div');sep1.className='ctrl-sep';
+  wrap.appendChild(sep1);
 
-  // SCAN
+  /* INTENSITY — теперь управляет рамками (border), а шейдер адаптируется */
+  intBtn=makeBtn('◎','INT·LOW',()=>{
+    S.edgeIntState=(S.edgeIntState+1)%3;
+    const lvl=INT_LEVELS[S.edgeIntState];
+    mat.uniforms.edgeInt.value=lvl.edge;
+    intBtn.querySelector('.cl').textContent=lvl.label;
+    /* re-draw boxes with new intensity */
+    const cur=S.scanActive?S.scanDetections:S.liveDetections;
+    if(cur.length)drawBoxes(cur,S.scanActive);
+  });
+  wrap.appendChild(intBtn);
+
+  const sep2=document.createElement('div');sep2.className='ctrl-sep';
+  wrap.appendChild(sep2);
+
+  /* SCAN */
   scanBtn=makeBtn('🔍','SCAN',toggleScan);
   wrap.appendChild(scanBtn);
 }
@@ -383,6 +836,7 @@ document.getElementById('btn-start').addEventListener('click',async()=>{
     setupThree();
     buildControls();
     loadCoco();
+    startBoxAnimLoop();
     S.lastFpsTime=performance.now();
     setInterval(()=>{
       const now=performance.now();
@@ -405,6 +859,7 @@ window.addEventListener('resize',()=>{
 
 window.addEventListener('keydown',e=>{
   if(e.key==='s'||e.key==='S')toggleScan();
+  if(e.key==='i'||e.key==='I')intBtn&&intBtn.click();
 });
 </script>
 

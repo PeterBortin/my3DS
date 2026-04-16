@@ -10,156 +10,67 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
-:root{
-  --green:#00ff41;--green-dim:rgba(0,255,65,.15);--green-glow:rgba(0,255,65,.3);
-}
+:root{--green:#00ff41;--green-glow:rgba(0,255,65,.3);}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{
-  background:#000;overflow:hidden;width:100vw;height:100vh;
-  font-family:'Share Tech Mono',monospace;color:var(--green);
-  user-select:none;-webkit-user-select:none;
-}
+body{background:#000;overflow:hidden;width:100vw;height:100vh;font-family:'Share Tech Mono',monospace;color:var(--green);user-select:none;-webkit-user-select:none;}
 
-/* ── START ── */
-#start-screen{
-position:fixed;inset:0;background:#000;display:flex;
-flex-direction:column;align-items:center;justify-content:center;
-z-index:200;gap:24px;
-}
-.scan-line-anim{
-position:absolute;inset:0;pointer-events:none;
-background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.03) 2px,rgba(0,255,65,.03) 4px);
-}
-.logo{
-font-family:‘Orbitron’,monospace;font-weight:900;
-font-size:clamp(28px,8vw,64px);letter-spacing:.15em;
-color:var(–green);text-shadow:0 0 30px var(–green),0 0 60px #00ff4155;
-animation:flicker 4s infinite;
-}
+/* START */
+#start-screen{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:24px;}
+.scan-line-anim{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.03) 2px,rgba(0,255,65,.03) 4px);}
+.logo{font-family:‘Orbitron’,monospace;font-weight:900;font-size:clamp(28px,8vw,64px);letter-spacing:.15em;color:var(–green);text-shadow:0 0 30px var(–green),0 0 60px #00ff4155;animation:flicker 4s infinite;}
 .logo span{color:#fff;}
 .tagline{font-size:11px;letter-spacing:4px;color:#555;text-transform:uppercase;}
 @keyframes flicker{0%,95%,100%{opacity:1}96%{opacity:.6}97%{opacity:1}98%{opacity:.4}99%{opacity:.9}}
-#btn-start{
-margin-top:16px;padding:14px 40px;background:transparent;
-border:1px solid var(–green);color:var(–green);
-font-family:‘Share Tech Mono’,monospace;font-size:13px;letter-spacing:4px;
-text-transform:uppercase;cursor:pointer;position:relative;overflow:hidden;transition:color .3s;
-}
-#btn-start::before{
-content:’’;position:absolute;inset:0;background:var(–green);
-transform:scaleX(0);transform-origin:left;transition:transform .3s ease;z-index:-1;
-}
+#btn-start{margin-top:16px;padding:14px 40px;background:transparent;border:1px solid var(–green);color:var(–green);font-family:‘Share Tech Mono’,monospace;font-size:13px;letter-spacing:4px;text-transform:uppercase;cursor:pointer;position:relative;overflow:hidden;transition:color .3s;}
+#btn-start::before{content:’’;position:absolute;inset:0;background:var(–green);transform:scaleX(0);transform-origin:left;transition:transform .3s ease;z-index:-1;}
 #btn-start:hover::before{transform:scaleX(1);}
 #btn-start:hover{color:#000;}
 
-/* ── APP ── */
+/* APP */
 #app{display:none;position:fixed;inset:0;}
 #app.active{display:block;}
 video{display:none;}
 #three-canvas{position:absolute;inset:0;width:100%;height:100%;}
 #det-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 
-/* ── HUD ── */
+/* HUD */
 .hud{position:absolute;inset:0;pointer-events:none;z-index:10;}
-.scanlines{
-position:absolute;inset:0;pointer-events:none;
-background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.12) 3px,rgba(0,0,0,.12) 4px);
-}
+.scanlines{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.12) 3px,rgba(0,0,0,.12) 4px);}
 .corner{position:absolute;width:30px;height:30px;border-color:var(–green);border-style:solid;opacity:.7;}
 .corner.tl{top:16px;left:16px;border-width:2px 0 0 2px;}
 .corner.tr{top:16px;right:16px;border-width:2px 2px 0 0;}
-.corner.bl{bottom:108px;left:16px;border-width:0 0 2px 2px;}
-.corner.br{bottom:108px;right:16px;border-width:0 2px 2px 0;}
-#filter-name{
-position:absolute;top:24px;left:50%;transform:translateX(-50%);
-font-family:‘Orbitron’,monospace;font-size:11px;letter-spacing:5px;
-color:var(–green);text-shadow:0 0 10px var(–green);white-space:nowrap;
-}
+.corner.bl{bottom:68px;left:16px;border-width:0 0 2px 2px;}
+.corner.br{bottom:68px;right:16px;border-width:0 2px 2px 0;}
+#filter-name{position:absolute;top:24px;left:50%;transform:translateX(-50%);font-family:‘Orbitron’,monospace;font-size:11px;letter-spacing:5px;color:var(–green);text-shadow:0 0 10px var(–green);white-space:nowrap;}
 .readout{position:absolute;font-size:9px;letter-spacing:2px;color:#00ff4188;line-height:1.6;}
 .readout.top-left{top:48px;left:20px;}
-.readout.bottom-left{bottom:115px;left:20px;}
-#model-status{
-position:absolute;top:48px;right:20px;font-size:8px;letter-spacing:2px;
-display:flex;align-items:center;gap:6px;color:#00ff4155;
-}
+.readout.bottom-left{bottom:75px;left:20px;}
+#model-status{position:absolute;top:48px;right:20px;font-size:8px;letter-spacing:2px;display:flex;align-items:center;gap:6px;color:#00ff4155;}
 #model-dot{width:6px;height:6px;border-radius:50%;background:#333;transition:background .3s,box-shadow .3s;}
 #model-dot.loading{background:#ff8c00;box-shadow:0 0 8px #ff8c00;animation:blink 1s infinite;}
 #model-dot.ready{background:var(–green);box-shadow:0 0 8px var(–green);}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#obj-count{position:absolute;bottom:75px;right:20px;font-size:8px;letter-spacing:2px;color:#00ff4188;display:none;}
 
-/* ── BOTTOM CHROME ── */
+/* BOTTOM */
 #bottom-chrome{position:absolute;bottom:0;left:0;right:0;z-index:20;pointer-events:all;}
-#mode-controls{
-display:flex;align-items:center;justify-content:center;
-gap:6px;padding:6px 10px 2px;
-background:rgba(0,0,0,.78);
-min-height:52px;
-transform:translateY(100%);opacity:0;
-transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .32s;
-pointer-events:none;
-overflow-x:auto;
-}
-#mode-controls.visible{transform:translateY(0);opacity:1;pointer-events:all;}
-.ctrl-btn{
-height:38px;padding:0 10px;min-width:56px;flex-shrink:0;
-background:rgba(0,0,0,.55);border:1px solid;border-radius:2px;
-font-family:‘Share Tech Mono’,monospace;font-size:7px;letter-spacing:1px;
-text-transform:uppercase;cursor:pointer;display:flex;flex-direction:column;
-align-items:center;justify-content:center;gap:2px;line-height:1.2;
-transition:all .18s;-webkit-tap-highlight-color:transparent;white-space:nowrap;
-}
+#mode-controls{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 12px 2px;background:rgba(0,0,0,.78);min-height:48px;overflow-x:auto;}
+.ctrl-sep{width:1px;height:28px;background:rgba(255,255,255,.08);flex-shrink:0;}
+.ctrl-btn{height:36px;padding:0 14px;min-width:60px;flex-shrink:0;background:rgba(0,0,0,.55);border:1px solid;border-radius:2px;font-family:‘Share Tech Mono’,monospace;font-size:7px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.2;transition:all .18s;-webkit-tap-highlight-color:transparent;white-space:nowrap;}
 .ctrl-btn .ci{font-size:13px;line-height:1;}
 .ctrl-btn.g-btn{border-color:rgba(0,255,65,.3);color:rgba(0,255,65,.6);}
-.ctrl-btn.g-btn.on,.ctrl-btn.g-btn:active{
-background:rgba(0,255,65,.18);border-color:var(–green);color:var(–green);
-box-shadow:0 0 10px rgba(0,255,65,.3);
-}
-.ctrl-slider-wrap{
-display:flex;flex-direction:column;align-items:center;gap:3px;
-padding:0 6px;min-width:72px;flex-shrink:0;color:rgba(0,255,65,.75);
-}
-.ctrl-slider-wrap label{font-size:7px;letter-spacing:1px;opacity:.7;}
-.ctrl-slider{
--webkit-appearance:none;appearance:none;
-width:70px;height:3px;border-radius:2px;outline:none;cursor:pointer;
-background:rgba(255,255,255,.1);accent-color:var(–green);
-}
-.ctrl-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(–green);box-shadow:0 0 5px var(–green);}
-.ctrl-sep{width:1px;height:30px;background:rgba(255,255,255,.08);flex-shrink:0;}
+.ctrl-btn.g-btn.on{background:rgba(0,255,65,.18);border-color:var(–green);color:var(–green);box-shadow:0 0 10px rgba(0,255,65,.3);}
+.ctrl-btn.g-btn:active{background:rgba(0,255,65,.1);}
+#filter-bar{display:flex;align-items:center;justify-content:center;padding:6px 12px 10px;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.92));height:50px;}
+#filter-label{font-family:‘Orbitron’,monospace;font-size:9px;letter-spacing:4px;color:#00ff4166;text-transform:uppercase;}
 
-/* ── FILTER BAR (single mode, no tabs) ── */
-#filter-bar{
-display:flex;align-items:center;justify-content:center;
-padding:8px 12px 10px;
-background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.92));
-height:56px;
-}
-#filter-label{
-font-family:‘Orbitron’,monospace;font-size:9px;letter-spacing:4px;
-color:#00ff4166;text-transform:uppercase;
-}
-
-/* ── FX ── */
-#scan-sweep-line{
-position:fixed;left:0;right:0;height:3px;pointer-events:none;z-index:50;
-background:linear-gradient(transparent,rgba(0,255,65,.85),transparent);
-display:none;
-}
-@keyframes scan-sweep{0%{top:-4px}100%{top:100%}}
-
-/* loading bar */
-#loading-bar{
-position:absolute;bottom:108px;left:50%;transform:translateX(-50%);
-width:200px;height:2px;background:#111;z-index:30;display:none;
-}
+/* loading */
+#loading-bar{position:absolute;bottom:68px;left:50%;transform:translateX(-50%);width:200px;height:2px;background:#111;z-index:30;display:none;}
 #loading-progress{height:100%;background:var(–green);width:0%;transition:width .3s;box-shadow:0 0 8px var(–green);}
 
-/* obj count badge */
-#obj-count{
-position:absolute;bottom:115px;right:20px;
-font-size:8px;letter-spacing:2px;color:#00ff4188;
-display:none;
-}
+/* scan sweep */
+#scan-sweep-line{position:fixed;left:0;right:0;height:3px;pointer-events:none;z-index:50;background:linear-gradient(transparent,rgba(0,255,65,.85),transparent);display:none;}
+@keyframes scan-sweep{0%{top:-4px}100%{top:100%}}
 </style>
 
 </head>
@@ -168,7 +79,7 @@ display:none;
 <div id="start-screen">
   <div class="scan-line-anim"></div>
   <div class="logo">VISION <span>SUITE</span></div>
-  <div class="tagline">green edge vision · coco-ssd detection</div>
+  <div class="tagline">green edge vision · realtime object detection</div>
   <button id="btn-start">INITIALIZE SYSTEM</button>
 </div>
 
@@ -176,7 +87,6 @@ display:none;
   <video id="v" playsinline muted autoplay></video>
   <canvas id="three-canvas"></canvas>
   <canvas id="det-canvas"></canvas>
-
   <div id="scan-sweep-line"></div>
 
   <div class="hud">
@@ -192,7 +102,7 @@ display:none;
       <div id="model-dot"></div>
       <span id="model-label">COCO-SSD: OFFLINE</span>
     </div>
-    <div class="readout bottom-left"><div id="mode-extra">SOBEL EDGE DETECTION</div></div>
+    <div class="readout bottom-left"><div>SOBEL EDGE DETECTION</div></div>
     <div id="obj-count"></div>
   </div>
 
@@ -200,167 +110,109 @@ display:none;
 
   <div id="bottom-chrome">
     <div id="mode-controls"></div>
-    <div id="filter-bar">
-      <div id="filter-label">◈ GREEN EDGE VISION</div>
-    </div>
+    <div id="filter-bar"><div id="filter-label">◈ GREEN EDGE VISION</div></div>
   </div>
 </div>
 
 <script>
 'use strict';
 
-// ════════════════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════════════════
 const S={
-  frameCount:0,lastFpsTime:0,
-  cocoModel:null,cocoLoading:false,cocoReady:false,
-  edgeIntensity:4.5,
+  frameCount:0, lastFpsTime:0,
+  cocoModel:null, cocoLoading:false, cocoReady:false,
   edgeTint:0,
-  pulseActive:false,pulseTime:0,
-  detections:[],          // last COCO results
-  scanning:false,
-  scanPersist:0,          // frames to keep boxes visible after scan
+  liveDetections:[],
+  detRunning:false,
+  scanActive:false,
+  scanDetections:[],
 };
 
 const video=document.getElementById('v');
 const threeCanvas=document.getElementById('three-canvas');
 const detCanvas=document.getElementById('det-canvas');
 
-// ════════════════════════════════════════════════════
-//  SHADERS  (green only)
-//  Inside each bounding box region the edge intensity
-//  is reduced to near-zero (done in frag via uniform array)
-// ════════════════════════════════════════════════════
-const V=`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.); }`;
-
-// We pass up to 16 bounding boxes as flat vec4 array [x,y,w,h] in UV space
-// Inside each box, edgeInt is multiplied by a low factor (0.08)
-const FRAG_GREEN=`
-  precision mediump float;
-  uniform sampler2D t;
-  uniform vec2 res;
-  uniform float edgeInt;
-  uniform float tint;
-  uniform float pulse;
-  uniform int numBoxes;
-  uniform vec4 boxes[16];
-  varying vec2 vUv;
-
-  float insideAny(){
-    for(int i=0;i<16;i++){
-      if(i>=numBoxes)break;
-      vec4 b=boxes[i];
-      if(vUv.x>=b.x&&vUv.x<=b.x+b.z&&vUv.y>=b.y&&vUv.y<=b.y+b.w) return 1.0;
-    }
-    return 0.0;
+// ── SHADER ──────────────────────────────────────────
+const VERT=`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.);}`;
+const FRAG=`
+precision mediump float;
+uniform sampler2D t;
+uniform vec2 res;
+uniform float edgeInt;
+uniform float tint;
+uniform int numBoxes;
+uniform vec4 boxes[20];
+varying vec2 vUv;
+float insideAny(){
+  for(int i=0;i<20;i++){
+    if(i>=numBoxes)break;
+    vec4 b=boxes[i];
+    if(vUv.x>=b.x&&vUv.x<=b.x+b.z&&vUv.y>=b.y&&vUv.y<=b.y+b.w)return 1.0;
   }
+  return 0.0;
+}
+void main(){
+  vec2 p=vec2(1./res.x,1./res.y);
+  float s11=texture2D(t,vUv+vec2(-p.x,-p.y)).r,s12=texture2D(t,vUv+vec2(0.,-p.y)).r,
+        s13=texture2D(t,vUv+vec2(p.x,-p.y)).r,s21=texture2D(t,vUv+vec2(-p.x,0.)).r,
+        s23=texture2D(t,vUv+vec2(p.x,0.)).r,s31=texture2D(t,vUv+vec2(-p.x,p.y)).r,
+        s32=texture2D(t,vUv+vec2(0.,p.y)).r,s33=texture2D(t,vUv+vec2(p.x,p.y)).r;
+  float gx=s13+2.*s23+s33-(s11+2.*s21+s31);
+  float gy=s31+2.*s32+s33-(s11+2.*s12+s13);
+  float e=sqrt(gx*gx+gy*gy);
+  float sc=sin(vUv.y*res.y*3.14159)*.04+.96;
+  float inside=insideAny();
+  float effInt=mix(edgeInt,edgeInt*0.06,inside);
+  float bright=e*effInt*sc;
+  vec3 col;
+  if(tint<1.)      col=mix(vec3(0.,bright,bright*.09),vec3(bright),tint);
+  else if(tint<2.) col=mix(vec3(bright),vec3(bright,bright*.55,0.),tint-1.);
+  else             col=vec3(bright,bright*.55,0.);
+  gl_FragColor=vec4(col,1.);
+}`;
 
-  void main(){
-    vec2 p=vec2(1./res.x,1./res.y);
-    float s11=texture2D(t,vUv+vec2(-p.x,-p.y)).r,
-          s12=texture2D(t,vUv+vec2(0.,-p.y)).r,
-          s13=texture2D(t,vUv+vec2(p.x,-p.y)).r,
-          s21=texture2D(t,vUv+vec2(-p.x,0.)).r,
-          s23=texture2D(t,vUv+vec2(p.x,0.)).r,
-          s31=texture2D(t,vUv+vec2(-p.x,p.y)).r,
-          s32=texture2D(t,vUv+vec2(0.,p.y)).r,
-          s33=texture2D(t,vUv+vec2(p.x,p.y)).r;
-    float gx=s13+2.*s23+s33-(s11+2.*s21+s31);
-    float gy=s31+2.*s32+s33-(s11+2.*s12+s13);
-    float e=sqrt(gx*gx+gy*gy);
-
-    float sc=sin(vUv.y*res.y*3.14159)*.04+.96;
-    float dist=length(vUv-vec2(.5,.5));
-    float pWave=pulse>0.?smoothstep(.04,0.,abs(dist-pulse))*.65:0.;
-
-    // suppress edges inside bounding boxes
-    float inside=insideAny();
-    float effInt=edgeInt*(1.-inside*0.92)+pWave;
-
-    float bright=e*effInt*sc;
-
-    vec3 col;
-    if(tint<1.)       col=mix(vec3(0.,bright,bright*.09),vec3(bright),tint);
-    else if(tint<2.)  col=mix(vec3(bright),vec3(bright,bright*.55,0.),tint-1.);
-    else              col=vec3(bright,bright*.55,0.);
-    gl_FragColor=vec4(col,1.);
-  }
-`;
-
-// ════════════════════════════════════════════════════
-//  THREE.JS
-// ════════════════════════════════════════════════════
-let scene,camera,renderer,videoTexture,mat;
-
-const boxesFlat=new Array(16).fill(null).map(()=>new THREE.Vector4(0,0,0,0));
+// ── THREE ────────────────────────────────────────────
+let renderer,mat;
+const boxesUniform=new Array(20).fill(null).map(()=>new THREE.Vector4(0,0,0,0));
 
 function setupThree(){
-  scene=new THREE.Scene();
-  camera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  const scene=new THREE.Scene();
+  const cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   renderer=new THREE.WebGLRenderer({canvas:threeCanvas,antialias:false});
   renderer.setSize(window.innerWidth,window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-  videoTexture=new THREE.VideoTexture(video);
-  const geom=new THREE.PlaneGeometry(2,2);
+  const vt=new THREE.VideoTexture(video);
   mat=new THREE.ShaderMaterial({
     uniforms:{
-      t:{value:videoTexture},
-      res:{value:new THREE.Vector2(window.innerWidth,window.innerHeight)},
-      edgeInt:{value:S.edgeIntensity},
-      tint:{value:0.0},
-      pulse:{value:0.0},
-      numBoxes:{value:0},
-      boxes:{value:boxesFlat}
+      t:{value:vt},res:{value:new THREE.Vector2(window.innerWidth,window.innerHeight)},
+      edgeInt:{value:4.5},tint:{value:0.0},numBoxes:{value:0},boxes:{value:boxesUniform}
     },
-    vertexShader:V,
-    fragmentShader:FRAG_GREEN
+    vertexShader:VERT,fragmentShader:FRAG
   });
-  scene.add(new THREE.Mesh(geom,mat));
-  renderThree();
+  scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),mat));
+  (function loop(){requestAnimationFrame(loop);renderer.render(scene,cam);S.frameCount++;})();
 }
 
-function renderThree(ts=0){
-  requestAnimationFrame(renderThree);
-  if(S.pulseActive){
-    S.pulseTime+=0.013;
-    mat.uniforms.pulse.value=S.pulseTime;
-    if(S.pulseTime>1.25){S.pulseActive=false;mat.uniforms.pulse.value=0;S.pulseTime=0;}
-  }
-  renderer.render(scene,camera);
-  S.frameCount++;
-}
-
-// ════════════════════════════════════════════════════
-//  PUSH BOXES TO SHADER (UV coords, y flipped for WebGL)
-// ════════════════════════════════════════════════════
-function pushBoxesToShader(dets){
+function pushBoxes(dets){
   const W=window.innerWidth,H=window.innerHeight;
-  const n=Math.min(dets.length,16);
-  for(let i=0;i<16;i++){
+  const vW=video.videoWidth||W,vH=video.videoHeight||H;
+  const sx=W/vW,sy=H/vH;
+  const n=Math.min(dets.length,20);
+  for(let i=0;i<20;i++){
     if(i<n){
-      const [x,y,w,h]=dets[i].bbox;
-      // UV coords: x,y normalised; y flipped (WebGL origin bottom-left)
-      const ux=x/W, uy=1-(y+h)/H, uw=w/W, uh=h/H;
-      boxesFlat[i].set(ux,uy,uw,uh);
-    }else{
-      boxesFlat[i].set(0,0,0,0);
-    }
+      const [bx,by,bw,bh]=dets[i].bbox;
+      boxesUniform[i].set(bx*sx/W,1-(by+bh)*sy/H,bw*sx/W,bh*sy/H);
+    } else { boxesUniform[i].set(0,0,0,0); }
   }
   mat.uniforms.numBoxes.value=n;
-  mat.uniforms.boxes.value=boxesFlat;
+  mat.uniforms.boxes.value=boxesUniform;
 }
 
-// ════════════════════════════════════════════════════
-//  COCO-SSD
-// ════════════════════════════════════════════════════
+// ── COCO-SSD ─────────────────────────────────────────
 async function loadCoco(){
-  if(S.cocoLoading||S.cocoReady) return;
+  if(S.cocoLoading||S.cocoReady)return;
   S.cocoLoading=true;
-  const dot=document.getElementById('model-dot');
-  const lbl=document.getElementById('model-label');
-  const bar=document.getElementById('loading-bar');
-  const prog=document.getElementById('loading-progress');
+  const dot=document.getElementById('model-dot'),lbl=document.getElementById('model-label');
+  const bar=document.getElementById('loading-bar'),prog=document.getElementById('loading-progress');
   dot.className='loading';lbl.textContent='COCO-SSD: LOADING';
   bar.style.display='block';prog.style.width='20%';
   try{
@@ -369,82 +221,81 @@ async function loadCoco(){
     setTimeout(()=>{bar.style.display='none';},600);
     S.cocoReady=true;S.cocoLoading=false;
     dot.className='ready';lbl.textContent='COCO-SSD: READY';
+    startRealtimeLoop();
   }catch(e){
     dot.className='';lbl.textContent='COCO-SSD: FAILED';
     bar.style.display='none';S.cocoLoading=false;
   }
 }
 
-// ════════════════════════════════════════════════════
-//  RUN SCAN  – detect ALL objects, draw boxes, suppress edges
-// ════════════════════════════════════════════════════
-async function runScan(){
-  if(S.scanning) return;
-  S.scanning=true;
+// ── REALTIME LOOP (~10 fps) ───────────────────────────
+function startRealtimeLoop(){
+  if(S.detRunning)return;
+  S.detRunning=true;
+  (async function loop(){
+    if(!S.detRunning)return;
+    if(S.cocoReady&&video.readyState>=2){
+      try{
+        const dets=await S.cocoModel.detect(video,20,0.25);
+        S.liveDetections=dets;
+        if(!S.scanActive){
+          pushBoxes(dets);
+          drawBoxes(dets,false);
+        }
+      }catch(_){}
+    }
+    setTimeout(()=>requestAnimationFrame(loop),100);
+  })();
+}
 
-  // sweep animation
+// ── SCAN TOGGLE ───────────────────────────────────────
+function toggleScan(){
+  if(S.scanActive){
+    S.scanActive=false;
+    S.scanDetections=[];
+    pushBoxes([]);
+    drawBoxes([],false);
+    document.getElementById('obj-count').style.display='none';
+    updateScanBtn(false);
+  } else {
+    S.scanActive=true;
+    S.scanDetections=[...S.liveDetections];
+    pushBoxes(S.scanDetections);
+    drawBoxes(S.scanDetections,true);
+    sweepFX();
+    updateScanBtn(true);
+  }
+}
+
+function sweepFX(){
   const sw=document.getElementById('scan-sweep-line');
   sw.style.display='block';sw.style.animation='none';
   void sw.offsetWidth;
-  sw.style.animation='scan-sweep 0.9s linear';
-  setTimeout(()=>{sw.style.display='none';},1000);
-
-  // pulse
-  S.pulseActive=true;S.pulseTime=0;
-
-  if(!S.cocoReady){
-    S.scanning=false;return;
-  }
-
-  try{
-    // detect on live video
-    const dets=await S.cocoModel.detect(video,20,0.25); // up to 20 objects, low threshold
-    S.detections=dets;
-    drawDetections(dets);
-    pushBoxesToShader(dets);
-
-    // keep boxes for 4 seconds
-    S.scanPersist=240;
-  }catch(e){
-    console.error(e);
-  }
-  S.scanning=false;
+  sw.style.animation='scan-sweep 0.75s linear';
+  setTimeout(()=>{sw.style.display='none';},800);
 }
 
-// Countdown persist timer (runs in rAF loop via interval)
-setInterval(()=>{
-  if(S.scanPersist>0){
-    S.scanPersist--;
-    if(S.scanPersist===0){
-      clearDetections();
-    }
-  }
-},16);
-
-function clearDetections(){
-  S.detections=[];
-  pushBoxesToShader([]);
-  const ctx=detCanvas.getContext('2d');
-  ctx.clearRect(0,0,detCanvas.width,detCanvas.height);
-  document.getElementById('obj-count').style.display='none';
+let scanBtn=null;
+function updateScanBtn(on){
+  if(!scanBtn)return;
+  scanBtn.classList.toggle('on',on);
+  scanBtn.querySelector('.ci').textContent=on?'🔒':'🔍';
+  scanBtn.querySelector('.cl').textContent=on?'RESET':'SCAN';
 }
 
-// ════════════════════════════════════════════════════
-//  DRAW DETECTION BOXES ON OVERLAY CANVAS
-// ════════════════════════════════════════════════════
-function drawDetections(dets){
+// ── DRAW BOXES ────────────────────────────────────────
+function drawBoxes(dets,frozen){
   const ctx=detCanvas.getContext('2d');
   const W=detCanvas.width,H=detCanvas.height;
   ctx.clearRect(0,0,W,H);
-
   if(!dets||!dets.length){
     document.getElementById('obj-count').style.display='none';
     return;
   }
-
-  const vW=video.videoWidth||W;
-  const vH=video.videoHeight||H;
+  const vW=video.videoWidth||W,vH=video.videoHeight||H;
   const sx=W/vW,sy=H/vH;
+  const alpha=frozen?0.92:0.5;
+  const lw=frozen?1.5:1.0;
 
   dets.forEach(det=>{
     const [bx,by,bw,bh]=det.bbox;
@@ -452,68 +303,47 @@ function drawDetections(dets){
     const score=Math.round(det.score*100);
     const label=(det.class||'OBJ').toUpperCase();
 
-    // outer glow
-    ctx.shadowBlur=12;ctx.shadowColor='rgba(0,255,65,.6)';
-    ctx.strokeStyle='rgba(0,255,65,.85)';ctx.lineWidth=1.5;
+    // main rect
+    ctx.shadowBlur=frozen?14:5;
+    ctx.shadowColor=`rgba(0,255,65,${alpha*.7})`;
+    ctx.strokeStyle=`rgba(0,255,65,${alpha})`;
+    ctx.lineWidth=lw;
     ctx.strokeRect(x,y,w,h);
 
     // corner ticks
-    const tk=Math.min(w,h,20);
-    ctx.lineWidth=2;ctx.strokeStyle='#00ff41';ctx.shadowBlur=16;
+    const tk=Math.min(w,h,18);
+    ctx.lineWidth=frozen?2:1.5;ctx.shadowBlur=frozen?18:8;
     [[x,y,tk,0,0,tk],[x+w,y,-tk,0,0,tk],[x,y+h,tk,0,0,-tk],[x+w,y+h,-tk,0,0,-tk]]
       .forEach(([ox,oy,dx1,dy1,dx2,dy2])=>{
         ctx.beginPath();ctx.moveTo(ox+dx1,oy+dy1);ctx.lineTo(ox,oy);ctx.lineTo(ox+dx2,oy+dy2);ctx.stroke();
       });
 
-    // label bg
+    // label
     ctx.shadowBlur=0;
-    const fontSize=9;
-    ctx.font=`${fontSize}px 'Share Tech Mono',monospace`;
-    const txtW=ctx.measureText(`${label} ${score}%`).width+10;
-    ctx.fillStyle='rgba(0,10,0,.78)';
-    ctx.fillRect(x-1,y-fontSize-8,txtW,fontSize+8);
-
-    // label text
-    ctx.fillStyle='#00ff41';
-    ctx.shadowBlur=6;ctx.shadowColor='#00ff41';
+    const fs=9;ctx.font=`${fs}px 'Share Tech Mono',monospace`;
+    const tw=ctx.measureText(`${label} ${score}%`).width+10;
+    ctx.fillStyle='rgba(0,8,0,.82)';
+    ctx.fillRect(x-1,y-fs-8,tw,fs+8);
+    ctx.fillStyle=`rgba(0,255,65,${alpha})`;
+    ctx.shadowBlur=frozen?8:4;ctx.shadowColor='#00ff41';
     ctx.fillText(`${label} ${score}%`,x+4,y-4);
     ctx.shadowBlur=0;
   });
 
-  // update obj count HUD
   const oc=document.getElementById('obj-count');
   oc.textContent=`OBJECTS: ${dets.length}`;
   oc.style.display='block';
 }
 
-// ════════════════════════════════════════════════════
-//  CONTROLS
-// ════════════════════════════════════════════════════
+// ── CONTROLS ─────────────────────────────────────────
 let edgeTintState=0;
 
 function buildControls(){
   const wrap=document.getElementById('mode-controls');
   wrap.innerHTML='';
 
-  // PULSE btn
-  const btnPulse=makeBtn('⚡','PULSE',false,()=>{S.pulseActive=true;S.pulseTime=0;});
-  wrap.appendChild(btnPulse);
-  wrap.appendChild(makeSep());
-
-  // INTENSITY slider
-  const slWrap=document.createElement('div');slWrap.className='ctrl-slider-wrap';
-  const slLbl=document.createElement('label');slLbl.textContent='INTENSITY';
-  const sl=document.createElement('input');
-  sl.type='range';sl.className='ctrl-slider';sl.min=1;sl.max=10;sl.step=.5;sl.value=S.edgeIntensity;
-  sl.addEventListener('input',()=>{
-    S.edgeIntensity=parseFloat(sl.value);
-    mat.uniforms.edgeInt.value=S.edgeIntensity;
-  });
-  slWrap.appendChild(slLbl);slWrap.appendChild(sl);wrap.appendChild(slWrap);
-  wrap.appendChild(makeSep());
-
-  // TINT btn
-  const btnTint=makeBtn('🟢','TINT',false,()=>{
+  // TINT
+  const btnTint=makeBtn('🟢','TINT',()=>{
     edgeTintState=(edgeTintState+1)%3;
     mat.uniforms.tint.value=edgeTintState;
     const icons=['🟢','⚪','🟠'],labels=['GREEN','WHITE','AMBER'];
@@ -521,37 +351,25 @@ function buildControls(){
     btnTint.querySelector('.cl').textContent=labels[edgeTintState];
   });
   wrap.appendChild(btnTint);
-  wrap.appendChild(makeSep());
 
-  // SCAN btn
-  const btnScan=makeBtn('🔍','SCAN',false,()=>{
-    btnScan.classList.add('on');setTimeout(()=>btnScan.classList.remove('on'),400);
-    runScan();
-  });
-  wrap.appendChild(btnScan);
+  const sep=document.createElement('div');sep.className='ctrl-sep';
+  wrap.appendChild(sep);
 
-  requestAnimationFrame(()=>wrap.classList.add('visible'));
+  // SCAN
+  scanBtn=makeBtn('🔍','SCAN',toggleScan);
+  wrap.appendChild(scanBtn);
 }
 
-function makeBtn(icon,label,isToggle,action){
-  const btn=document.createElement('button');
-  btn.className='ctrl-btn g-btn';
+function makeBtn(icon,label,action){
+  const btn=document.createElement('button');btn.className='ctrl-btn g-btn';
   const ci=document.createElement('span');ci.className='ci';ci.textContent=icon;
   const cl=document.createElement('span');cl.className='cl';cl.textContent=label;
   btn.appendChild(ci);btn.appendChild(cl);
-  if(isToggle){
-    let on=false;
-    btn.addEventListener('click',()=>{on=!on;btn.classList.toggle('on',on);action(on);});
-  }else{
-    btn.addEventListener('click',action);
-  }
+  btn.addEventListener('click',action);
   return btn;
 }
-function makeSep(){const s=document.createElement('div');s.className='ctrl-sep';return s;}
 
-// ════════════════════════════════════════════════════
-//  BOOT
-// ════════════════════════════════════════════════════
+// ── BOOT ─────────────────────────────────────────────
 document.getElementById('btn-start').addEventListener('click',async()=>{
   try{
     const stream=await navigator.mediaDevices.getUserMedia({
@@ -561,14 +379,10 @@ document.getElementById('btn-start').addEventListener('click',async()=>{
     document.getElementById('start-screen').style.display='none';
     document.getElementById('app').classList.add('active');
     document.getElementById('res-info').textContent=`RES: ${video.videoWidth||'?'}x${video.videoHeight||'?'}`;
-
-    // resize det canvas to match
     detCanvas.width=window.innerWidth;detCanvas.height=window.innerHeight;
-
     setupThree();
-    loadCoco();
     buildControls();
-
+    loadCoco();
     S.lastFpsTime=performance.now();
     setInterval(()=>{
       const now=performance.now();
@@ -576,10 +390,7 @@ document.getElementById('btn-start').addEventListener('click',async()=>{
       S.frameCount=0;S.lastFpsTime=now;
       document.getElementById('fps-counter').textContent=`FPS: ${fps}`;
     },500);
-
-  }catch(e){
-    alert('Camera access denied. Use HTTPS and allow camera.');
-  }
+  }catch(e){alert('Camera access denied. Use HTTPS and allow camera.');}
 });
 
 window.addEventListener('resize',()=>{
@@ -588,12 +399,12 @@ window.addEventListener('resize',()=>{
   renderer.setSize(W,H);
   mat.uniforms.res.value.set(W,H);
   detCanvas.width=W;detCanvas.height=H;
-  // redraw existing detections at new scale
-  if(S.detections.length) drawDetections(S.detections);
+  const cur=S.scanActive?S.scanDetections:S.liveDetections;
+  if(cur.length)drawBoxes(cur,S.scanActive);
 });
 
 window.addEventListener('keydown',e=>{
-  if(e.key==='s'||e.key==='S') runScan();
+  if(e.key==='s'||e.key==='S')toggleScan();
 });
 </script>
 
